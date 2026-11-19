@@ -14,6 +14,7 @@ import InitializationScreen from './components/InitializationScreen';
 import LoadingSpinner from './components/LoadingSpinner';
 import { SuccessToast } from './components/SuccessToast';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { LocaleProvider, useLocale } from './contexts/LocaleContext';
 import { TaskIdIndexProvider } from './contexts/TaskIdIndexContext';
 import {
 	type Decision,
@@ -925,21 +926,25 @@ function AppContent() {
   // Show loading state while checking initialization
   if (isInitialized === null) {
     return (
-      <ThemeProvider>
-        <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900" role="status">
-          <LoadingSpinner size="md" text="" />
-          <span className="sr-only">Loading</span>
-        </div>
-      </ThemeProvider>
+      <LocaleProvider>
+        <ThemeProvider>
+          <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900" role="status">
+            <LoadingSpinner size="md" text="" />
+            <span className="sr-only">Loading</span>
+          </div>
+        </ThemeProvider>
+      </LocaleProvider>
     );
   }
 
   // Show initialization screen if not initialized
   if (isInitialized === false) {
     return (
-      <ThemeProvider>
-        <InitializationScreen onInitialized={handleInitialized} />
-      </ThemeProvider>
+      <LocaleProvider>
+        <ThemeProvider>
+          <InitializationScreen onInitialized={handleInitialized} />
+        </ThemeProvider>
+      </LocaleProvider>
     );
   }
 
@@ -983,7 +988,8 @@ function AppContent() {
   );
 
   return (
-    <ThemeProvider>
+    <LocaleProvider>
+      <ThemeProvider>
       <TaskIdIndexProvider tasks={tasks}>
       <Routes>
             <Route
@@ -1111,20 +1117,41 @@ function AppContent() {
 
       {/* Task Creation Confirmation Toast */}
       {taskConfirmation && (
-        <SuccessToast
-          message={`${taskConfirmation.isDraft ? 'Draft' : 'Task'} "${taskConfirmation.task.title}" created successfully! (${taskConfirmation.task.id.replace('task-', '')})`}
+        <TaskCreatedToast
+          task={taskConfirmation.task}
+          isDraft={taskConfirmation.isDraft}
           onDismiss={() => setTaskConfirmation(null)}
-          icon={
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          }
         />
       )}
       </TaskIdIndexProvider>
-    </ThemeProvider>
+      </ThemeProvider>
+    </LocaleProvider>
   );
 }
+
+/** The created-task confirmation reads the active language, so it sits inside the locale provider. */
+const TaskCreatedToast: React.FC<{ task: Task; isDraft: boolean; onDismiss: () => void }> = ({
+  task,
+  isDraft,
+  onDismiss,
+}) => {
+  const { t } = useLocale();
+  return (
+    <SuccessToast
+      message={t('toast.taskCreated', {
+        kind: isDraft ? t('drafts.title') : t('task.kind'),
+        title: task.title,
+        id: task.id.replace('task-', ''),
+      })}
+      onDismiss={onDismiss}
+      icon={
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      }
+    />
+  );
+};
 
 function App() {
   return (

@@ -11,6 +11,11 @@ export type StoredDateDisplayOptions = {
 	 * tests pass it explicitly so results never depend on the machine's timezone.
 	 */
 	timeZone?: string;
+	/**
+	 * Wording for a recent value, given how many whole days ago it is. The caller supplies it so
+	 * this module stays free of UI text and locale state; without it the English wording is used.
+	 */
+	relative?: (days: number) => string;
 };
 
 export type StoredDateDisplay = {
@@ -118,13 +123,18 @@ export function formatStoredDateForCompactDisplay(
 	const diffDays = todayLocal ? calendarDaysBetween(localDate, todayLocal) : null;
 
 	if (diffDays !== null && diffDays >= 0 && diffDays < 7) {
-		if (diffDays === 0) return { text: "today", title };
-		if (diffDays === 1) return { text: "yesterday", title };
-		return { text: `${diffDays}d ago`, title };
+		return { text: options.relative?.(diffDays) ?? englishRelativeDay(diffDays), title };
 	}
 
 	// Absolute fallback stays compact: the date portion only, in the viewer's timezone.
 	return { text: formatUtcDateForDisplay(localDate, { dateFormat: options.dateFormat }), title };
+}
+
+/** The default wording for a recent day, used when the caller supplies no translation. */
+function englishRelativeDay(days: number): string {
+	if (days === 0) return "today";
+	if (days === 1) return "yesterday";
+	return `${days}d ago`;
 }
 
 /** Whole calendar days from `earlier` to `later`, both `yyyy-mm-dd` read in the same timezone. */
