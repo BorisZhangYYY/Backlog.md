@@ -7,6 +7,7 @@ import {
 	generateMilestoneGroupedBoard,
 } from "../board.ts";
 import { type Core, createRuntimeCore } from "../core/backlog.ts";
+import { cliLocale, cliT } from "../i18n/cli.ts";
 import type { LabelMatchMode, Milestone, Task, TaskCreateInput } from "../types/index.ts";
 import { copyToClipboard } from "../utils/clipboard.ts";
 import { areLabelSelectionsEqual, collectAvailableLabels } from "../utils/label-filter.ts";
@@ -351,7 +352,7 @@ export async function renderBoardTui(
 
 	const initialColumns = prepareBoardColumns(initialTasks, statuses);
 	if (initialColumns.length === 0) {
-		console.log("No tasks available for the Kanban board.");
+		console.log(cliT(cliLocale(process.env), "No tasks available for the Kanban board."));
 		return;
 	}
 
@@ -956,7 +957,7 @@ export async function renderBoardTui(
 						title: "Priority Filter",
 						selectedValue: sharedFilters.priorityFilter,
 						choices: [
-							{ label: "All", value: "" },
+							{ label: cliT(cliLocale(process.env), "All"), value: "" },
 							...priorityOptions.map((priority) => ({ label: priority.label, value: priority.value })),
 						],
 					});
@@ -974,7 +975,7 @@ export async function renderBoardTui(
 					title: "Milestone Filter",
 					selectedValue: sharedFilters.milestoneFilter,
 					choices: [
-						{ label: "All", value: "" },
+						{ label: cliT(cliLocale(process.env), "All"), value: "" },
 						{ label: NO_MILESTONE_FILTER_LABEL, value: NO_MILESTONE_FILTER_VALUE },
 						...availableMilestones.map((value) => ({ label: value, value })),
 					],
@@ -1513,7 +1514,7 @@ export async function renderBoardTui(
 						: ` {gray-fg}No changes detected for ${result.task?.id ?? task.id}.{/}`,
 				);
 			} catch (_error) {
-				showTransientFooter(" {red-fg}Failed to open editor.{/}");
+				showTransientFooter(` {red-fg}${cliT(cliLocale(process.env), "Failed to open editor.")}{/}`);
 			}
 		};
 
@@ -1572,7 +1573,7 @@ export async function renderBoardTui(
 				if (success) {
 					showTransientFooter(` {green-fg}Copied ${task.id} to clipboard{/}`);
 				} else {
-					showTransientFooter(" {red-fg}Failed to copy to clipboard{/}");
+					showTransientFooter(` {red-fg}${cliT(cliLocale(process.env), "Failed to copy to clipboard")}{/}`);
 				}
 			});
 
@@ -1815,7 +1816,7 @@ export async function renderBoardTui(
 
 		const enterMoveMode = () => {
 			if (hasMoveBlockingSharedFilters()) {
-				showTransientFooter(" {yellow-fg}Clear filters before moving tasks.{/}");
+				showTransientFooter(` {yellow-fg}${cliT(cliLocale(process.env), "Clear filters before moving tasks.")}{/}`);
 				return;
 			}
 
@@ -1928,7 +1929,7 @@ export async function renderBoardTui(
 			}
 			const targetId = candidateId;
 			if (!targetId || targetId === operation.taskId) {
-				showTransientFooter(" {yellow-fg}No task to select here.{/}");
+				showTransientFooter(` {yellow-fg}${cliT(cliLocale(process.env), "No task to select here.")}{/}`);
 				return;
 			}
 
@@ -2029,7 +2030,7 @@ export async function renderBoardTui(
 				const core = await getCore();
 				const config = await core.fs.loadConfig();
 				if (!config) {
-					throw new Error("No config found");
+					throw new Error(cliT(cliLocale(process.env), "No config found"));
 				}
 				await core.fs.saveConfig({ ...config, hideEmptyColumns });
 			} catch (error) {
@@ -2041,7 +2042,9 @@ export async function renderBoardTui(
 				return;
 			}
 			showTransientFooter(
-				hideEmptyColumns ? " {green-fg}Hiding empty columns{/}" : " {green-fg}Showing empty columns{/}",
+				hideEmptyColumns
+					? ` {green-fg}${cliT(cliLocale(process.env), "Hiding empty columns")}{/}`
+					: ` {green-fg}${cliT(cliLocale(process.env), "Showing empty columns")}{/}`,
 			);
 		};
 

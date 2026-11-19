@@ -5,6 +5,7 @@
 
 import type { BoxInterface, ScreenInterface, TextboxInterface } from "neo-neo-bblessed";
 import { box, textbox } from "neo-neo-bblessed";
+import { cliLocale, cliT } from "../../i18n/cli.ts";
 import { formatLabelSummary } from "../../utils/label-filter.ts";
 import { NO_MILESTONE_FILTER_LABEL, NO_MILESTONE_FILTER_VALUE } from "../../utils/milestone-filter.ts";
 
@@ -49,7 +50,35 @@ interface LayoutResult {
 	height: number;
 }
 
-const ALL_FILTER_ITEMS: FilterItem[] = [
+/** Terminal columns a label occupies: a full-width CJK character takes two. */
+function displayWidth(text: string): number {
+	let width = 0;
+	for (const char of text) {
+		width += /[\u1100-\u115F\u2E80-\uA4CF\uAC00-\uD7A3\uF900-\uFAFF\uFE30-\uFE4F\uFF00-\uFF60\uFFE0-\uFFE6]/.test(char)
+			? 2
+			: 1;
+	}
+	return width;
+}
+
+/** The "no filter applied" value, and the count shown when several options are chosen. */
+function allLabel(): string {
+	return `${cliT(cliLocale(process.env), "All")} ▼`;
+}
+
+function selectedLabel(count: number): string {
+	return cliT(cliLocale(process.env), "{count} selected", { count });
+}
+
+type FilterItemSpec = {
+	id: FilterControlId;
+	labelText: string;
+	labelWidth: number;
+	minWidth: number;
+	flexGrow: boolean;
+};
+
+const FILTER_ITEM_SPECS: FilterItemSpec[] = [
 	{ id: "search", labelText: "Search:", labelWidth: 8, minWidth: 28, flexGrow: true },
 	{ id: "status", labelText: "Status:", labelWidth: 8, minWidth: 22, flexGrow: false },
 	{ id: "type", labelText: "Type:", labelWidth: 6, minWidth: 18, flexGrow: false },
@@ -58,6 +87,22 @@ const ALL_FILTER_ITEMS: FilterItem[] = [
 	{ id: "milestone", labelText: "Milestone:", labelWidth: 10, minWidth: 22, flexGrow: false },
 	{ id: "labels", labelText: "Labels:", labelWidth: 8, minWidth: 18, flexGrow: false },
 ];
+
+/**
+ * The filter labels and the column each control starts at.
+ *
+ * `labelWidth` positions the control beside its label, so a translated label gets its own
+ * measured width: a Chinese header stays aligned instead of clipping or overlapping the input.
+ * English keeps the original widths, which are one column wider than the text.
+ */
+const ALL_FILTER_ITEMS: FilterItem[] = (() => {
+	const locale = cliLocale(process.env);
+	if (locale === "en") return FILTER_ITEM_SPECS;
+	return FILTER_ITEM_SPECS.map((spec) => {
+		const labelText = cliT(locale, spec.labelText);
+		return { ...spec, labelText, labelWidth: displayWidth(labelText) + 1 };
+	});
+})();
 
 const PADDING = 1; // Left padding inside header box
 const GAP = 2; // Gap between filter items
@@ -173,7 +218,7 @@ export class FilterHeader {
 			height: this.currentLayout.height,
 			border: { type: "line" },
 			style: { border: { fg: "cyan" } },
-			label: "\u00A0Filters\u00A0",
+			label: `\u00A0${cliT(cliLocale(process.env), "Filters")}\u00A0`,
 		});
 
 		this.buildElements();
@@ -638,27 +683,29 @@ export class FilterHeader {
 	private getPopupButtonContent(field: Exclude<FilterControlId, "search">): string {
 		switch (field) {
 			case "status":
-				if (this.state.status.length === 0) return "All ▼";
+				if (this.state.status.length === 0) return allLabel();
 				if (this.state.status.length === 1) return `${this.state.status[0]} ▼`;
-				return `${this.state.status.length} selected ▼`;
+				return `${selectedLabel(this.state.status.length)} ▼`;
 			case "type":
-				if (this.state.taskTypes.length === 0) return "All ▼";
+				if (this.state.taskTypes.length === 0) return allLabel();
 				if (this.state.taskTypes.length === 1) return `${this.state.taskTypes[0]} ▼`;
-				return `${this.state.taskTypes.length} selected ▼`;
+				return `${selectedLabel(this.state.taskTypes.length)} ▼`;
 			case "project":
-				if (this.state.projects.length === 0) return "All ▼";
+				if (this.state.projects.length === 0) return allLabel();
 				if (this.state.projects.length === 1) return `${this.state.projects[0]} ▼`;
-				return `${this.state.projects.length} selected ▼`;
+				return `${selectedLabel(this.state.projects.length)} ▼`;
 			case "priority":
-				return this.state.priority ? `${this.state.priority} ▼` : "All ▼";
+				return this.state.priority ? `${this.state.priority} ▼` : allLabel();
 			case "milestone":
 				if (!this.state.milestone) {
-					return "All ▼";
+					return allLabel();
 				}
-				return `${this.state.milestone === NO_MILESTONE_FILTER_VALUE ? NO_MILESTONE_FILTER_LABEL : this.state.milestone} ▼`;
+				return `${this.state.milestone === NO_MILESTONE_FILTER_VALUE ? cliT(cliLocale(process.env), NO_MILESTONE_FILTER_LABEL) : this.state.milestone} ▼`;
 			case "labels": {
 				const summary = formatLabelSummary(this.state.labels).replace(/^Labels:\s*/, "");
-				return `${summary} ▼`;
+				// With no labels selected the summary carries the picker's "all" wording, which is
+				// itself a translatable phrase rather than a label name.
+				return `${summary === "All" ? cliT(cliLocale(process.env), "All") : summary} ▼`;
 			}
 		}
 	}

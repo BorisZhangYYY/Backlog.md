@@ -4,6 +4,7 @@
 
 import type { Core } from "../core/backlog.ts";
 import { findLocalDuplicateTaskIds } from "../core/duplicate-task-repair.ts";
+import { cliLocale, cliT } from "../i18n/cli.ts";
 import type { LabelMatchMode, Milestone, Task, TaskCreateInput } from "../types/index.ts";
 import { watchConfig } from "../utils/config-watcher.ts";
 import { formatDuplicateTaskIdSummary } from "../utils/duplicate-detection.ts";
@@ -211,7 +212,7 @@ export async function loadTasksForUnifiedView(
 		});
 
 	const loadingScreenFactory = options.loadingScreenFactory || createLoadingScreen;
-	const loadingScreen = await loadingScreenFactory("Loading tasks");
+	const loadingScreen = await loadingScreenFactory(cliT(cliLocale(process.env), "Loading tasks"));
 
 	try {
 		const result = await loader((message) => {
@@ -237,7 +238,7 @@ type ViewResult = "switch" | "exit";
 
 export function getEmptyUnifiedViewMessage(initialView: ViewType, parentTaskId?: string): string | null {
 	if (parentTaskId) return `No child tasks found for parent task ${parentTaskId}.`;
-	return initialView === "kanban" ? null : "No tasks found.";
+	return initialView === "kanban" ? null : cliT(cliLocale(process.env), "No tasks found.");
 }
 
 export async function createTaskFromBoard(

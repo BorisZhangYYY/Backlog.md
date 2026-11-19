@@ -20,6 +20,7 @@ import {
 	formatDateForDisplay,
 	formatTaskPlainText,
 } from "../formatters/task-plain-text.ts";
+import { cliLocale, cliT } from "../i18n/cli.ts";
 import type { LabelMatchMode, Milestone, Task } from "../types/index.ts";
 import { copyToClipboard } from "../utils/clipboard.ts";
 import { areLabelSelectionsEqual, collectAvailableLabels } from "../utils/label-filter.ts";
@@ -328,7 +329,7 @@ export async function viewTaskEnhanced(
 		projectName = config?.projectName;
 	} else {
 		// Need to load tasks - show loading screen
-		const loadingScreen = await createLoadingScreen("Loading tasks");
+		const loadingScreen = await createLoadingScreen(cliT(cliLocale(process.env), "Loading tasks"));
 		try {
 			loadingScreen?.update("Loading configuration...");
 			const config = await core.filesystem.loadConfig();
@@ -553,7 +554,7 @@ export async function viewTaskEnhanced(
 					title: "Priority Filter",
 					selectedValue: priorityFilter,
 					choices: [
-						{ label: "All", value: "" },
+						{ label: cliT(cliLocale(process.env), "All"), value: "" },
 						...priorityOptions.map((priority) => ({ label: priority.label, value: priority.value })),
 					],
 				});
@@ -571,7 +572,7 @@ export async function viewTaskEnhanced(
 				title: "Milestone Filter",
 				selectedValue: milestoneFilter,
 				choices: [
-					{ label: "All", value: "" },
+					{ label: cliT(cliLocale(process.env), "All"), value: "" },
 					{ label: NO_MILESTONE_FILTER_LABEL, value: NO_MILESTONE_FILTER_VALUE },
 					...availableMilestoneTitles.map((milestone) => ({ label: milestone, value: milestone })),
 				],

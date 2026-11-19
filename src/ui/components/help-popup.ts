@@ -1,4 +1,5 @@
 import type { ScreenInterface } from "neo-neo-bblessed";
+import { cliLocale, cliT } from "../../i18n/cli.ts";
 import { createPopupChrome, createScrollableViewport } from "./filter-popup.ts";
 
 export type HelpPopupContext = "board" | "task-list";
@@ -63,7 +64,10 @@ const HELP_POPUP_CHROME_ROWS = 4;
 const HELP_POPUP_WIDTH = 60;
 
 function getHelpText(scrolls: boolean): string {
-	return scrolls ? " {cyan-fg}[↑↓]{/} Scroll | {cyan-fg}[Esc/q]{/} Close Help" : " {cyan-fg}[Esc/q]{/} Close Help";
+	const locale = cliLocale(process.env);
+	return scrolls
+		? cliT(locale, " {cyan-fg}[↑↓]{/} Scroll | {cyan-fg}[Esc/q]{/} Close Help")
+		: cliT(locale, " {cyan-fg}[Esc/q]{/} Close Help");
 }
 
 export function getHelpPopupHeight(shortcutCount: number, screenHeight: number): number {
@@ -83,13 +87,14 @@ export async function openHelpPopup(
 		let popupHeight = getHelpPopupHeight(shortcuts.length, screen.height);
 		const { popup, close, reflow } = createPopupChrome({
 			screen,
-			title: "Keyboard Shortcuts",
+			title: cliT(cliLocale(process.env), "Keyboard Shortcuts"),
 			helpText: getHelpText(false),
 			width: HELP_POPUP_WIDTH,
 			height: popupHeight,
 		});
 
-		const content = shortcuts.map((s) => `{cyan-fg}[${s.key.padStart(5)}]{/} ${s.desc}`).join("\n");
+		const locale = cliLocale(process.env);
+		const content = shortcuts.map((s) => `{cyan-fg}[${s.key.padStart(5)}]{/} ${cliT(locale, s.desc)}`).join("\n");
 
 		// Terminals too short for every shortcut keep the remaining rows reachable by scrolling.
 		const contentBox = createScrollableViewport({

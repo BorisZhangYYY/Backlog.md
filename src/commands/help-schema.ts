@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import type { Command } from "commander";
 import { DEFAULT_STATUSES } from "../constants/index.ts";
+import { cliLocale, cliT } from "../i18n/cli.ts";
 import { resolveBacklogDirectory } from "../utils/backlog-directory.ts";
 import { getPriorityLabels } from "../utils/priority-config.ts";
 import { getProjectValues } from "../utils/project-config.ts";
@@ -28,15 +29,16 @@ function resolveText(value: string | (() => string) | undefined): string | undef
 }
 
 function formatField(field: HelpField): string {
-	const type = resolveText(field.type) ?? "";
-	const description = resolveText(field.description);
+	const locale = cliLocale(process.env);
+	const type = cliT(locale, resolveText(field.type) ?? "");
+	const description = cliT(locale, resolveText(field.description) ?? "");
 	const suffix = description ? ` - ${description}` : "";
 	return `  - ${field.name}: ${type}${suffix}`;
 }
 
 function formatFields(title: string, fields: HelpField[] | undefined): string[] {
 	if (!fields || fields.length === 0) {
-		return [title, "  - None"];
+		return [title, cliT(cliLocale(process.env), "  - None")];
 	}
 	return [title, ...fields.map(formatField)];
 }
@@ -47,30 +49,31 @@ function firstMarkdownField(schema: HelpSchema): string | undefined {
 }
 
 function renderHelpSchema(schema: HelpSchema): string {
-	const lines = ["", "Input schema:", ...formatFields("Required fields:", schema.required)];
+	const locale = cliLocale(process.env);
+	const lines = ["", cliT(locale, "Input schema:"), ...formatFields(cliT(locale, "Required fields:"), schema.required)];
 
 	if (schema.optional) {
-		lines.push(...formatFields("Optional fields:", schema.optional));
+		lines.push(...formatFields(cliT(locale, "Optional fields:"), schema.optional));
 	}
 	const markdownField = firstMarkdownField(schema);
 	if (markdownField) {
 		lines.push(
-			"Markdown fields:",
-			"  - Multi-line values need real newlines; a literal \\n is stored as text",
-			`  - Example (bash/zsh): --${markdownField} $'First line\\nSecond line'`,
+			cliT(locale, "Markdown fields:"),
+			cliT(locale, "  - Multi-line values need real newlines; a literal \\n is stored as text"),
+			cliT(locale, "  - Example (bash/zsh): --{field} $'First line\\nSecond line'", { field: markdownField }),
 		);
 	}
 	if (schema.reads) {
-		lines.push("Reads:", `  - ${schema.reads}`);
+		lines.push(cliT(locale, "Reads:"), `  - ${cliT(locale, schema.reads)}`);
 	}
 	if (schema.writes) {
-		lines.push("Writes:", `  - ${schema.writes}`);
+		lines.push(cliT(locale, "Writes:"), `  - ${cliT(locale, schema.writes)}`);
 	}
 	if (schema.output) {
-		lines.push("Output:", `  - ${schema.output}`);
+		lines.push(cliT(locale, "Output:"), `  - ${cliT(locale, schema.output)}`);
 	}
 	if (schema.examples && schema.examples.length > 0) {
-		lines.push("Examples:", ...schema.examples.map((example) => `  ${renderConfiguredTaskIds(example)}`));
+		lines.push(cliT(locale, "Examples:"), ...schema.examples.map((example) => `  ${renderConfiguredTaskIds(example)}`));
 	}
 
 	return `\n${lines.join("\n")}\n`;
@@ -284,28 +287,34 @@ export function renderConfiguredTaskIds(text: string): string {
 }
 
 export function choiceType(values: readonly string[], options?: { multiple?: boolean }): string {
-	return `${options?.multiple ? "one or more of" : "one of"}: ${values.join(", ")}`;
+	const locale = cliLocale(process.env);
+	const cardinality = cliT(locale, options?.multiple ? "one or more of" : "one of");
+	return `${cardinality}: ${values.join(", ")}`;
 }
 
 export function statusType(options?: { includeDraft?: boolean; multiple?: boolean }): string {
-	const cardinality = options?.multiple ? "one or more of" : "one of";
-	return `${cardinality} configured statuses: ${getCliStatusValues(options).join(", ")}`;
+	const locale = cliLocale(process.env);
+	const cardinality = cliT(locale, options?.multiple ? "one or more of" : "one of");
+	return `${cardinality} ${cliT(locale, "configured statuses")}: ${getCliStatusValues(options).join(", ")}`;
 }
 
 export function priorityType(): string {
-	return `one of configured priorities: ${getCliPriorityValues().join(", ")}`;
+	const locale = cliLocale(process.env);
+	return `${cliT(locale, "one of")} ${cliT(locale, "configured priorities")}: ${getCliPriorityValues().join(", ")}`;
 }
 
 export function taskType(options?: { multiple?: boolean }): string {
-	const cardinality = options?.multiple ? "one or more of" : "one of";
-	return `${cardinality} configured task types: ${getCliTaskTypeValues().join(", ")}`;
+	const locale = cliLocale(process.env);
+	const cardinality = cliT(locale, options?.multiple ? "one or more of" : "one of");
+	return `${cardinality} ${cliT(locale, "configured task types")}: ${getCliTaskTypeValues().join(", ")}`;
 }
 
 export function projectType(options?: { multiple?: boolean }): string {
+	const locale = cliLocale(process.env);
 	const values = getCliProjectValues();
 	if (values.length === 0) {
-		return "no projects configured; add a 'projects:' list to the project config file";
+		return cliT(locale, "no projects configured; add a 'projects:' list to the project config file");
 	}
-	const cardinality = options?.multiple ? "one or more of" : "one of";
-	return `${cardinality} configured projects: ${values.join(", ")}`;
+	const cardinality = cliT(locale, options?.multiple ? "one or more of" : "one of");
+	return `${cardinality} ${cliT(locale, "configured projects")}: ${values.join(", ")}`;
 }

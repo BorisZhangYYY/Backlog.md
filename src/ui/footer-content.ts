@@ -8,18 +8,28 @@
  * The project filter (`V`) is only bound when the project configures `projects:`, so it is
  * listed only when it is actually available, matching the help popup.
  */
+import { cliLocale, cliT } from "../i18n/cli.ts";
+
 function filterKeys(before: string[], after: string[], hasProjects: boolean): string {
 	return [...before, ...(hasProjects ? ["V"] : []), ...after].join("/");
 }
 
 export function getBoardFooterContent(options: { hasProjects?: boolean } = {}): string {
 	const keys = filterKeys(["T"], ["P", "I", "F"], options.hasProjects ?? false);
-	return ` {cyan-fg}[Tab]{/} View | {cyan-fg}[N]{/} New | {cyan-fg}[/]{/} Search | {cyan-fg}[${keys}]{/} Filter | {cyan-fg}[←→/↑↓]{/} Nav | {cyan-fg}[Enter]{/} Details | {cyan-fg}[E/M/A]{/} Edit/Move/Arch | {cyan-fg}[Y]{/} Yank | {cyan-fg}[?]{/} Help | {cyan-fg}[q]{/} Quit`;
+	return cliT(
+		cliLocale(process.env),
+		" {cyan-fg}[Tab]{/} View | {cyan-fg}[N]{/} New | {cyan-fg}[/]{/} Search | {cyan-fg}[{keys}]{/} Filter | {cyan-fg}[←→/↑↓]{/} Nav | {cyan-fg}[Enter]{/} Details | {cyan-fg}[E/M/A]{/} Edit/Move/Arch | {cyan-fg}[Y]{/} Yank | {cyan-fg}[?]{/} Help | {cyan-fg}[q]{/} Quit",
+		{ keys },
+	);
 }
 
 export function getTaskListFooterContent(options: { hasProjects?: boolean } = {}): string {
 	const keys = filterKeys(["S", "T"], ["P", "I", "L"], options.hasProjects ?? false);
-	return ` {cyan-fg}[Tab]{/} View | {cyan-fg}[/]{/} Search | {cyan-fg}[${keys}]{/} Filter | {cyan-fg}[↑↓]{/} Nav | {cyan-fg}[E/A]{/} Edit/Arch | {cyan-fg}[Y]{/} Yank | {cyan-fg}[?]{/} Help | {cyan-fg}[q]{/} Quit`;
+	return cliT(
+		cliLocale(process.env),
+		" {cyan-fg}[Tab]{/} View | {cyan-fg}[/]{/} Search | {cyan-fg}[{keys}]{/} Filter | {cyan-fg}[↑↓]{/} Nav | {cyan-fg}[E/A]{/} Edit/Arch | {cyan-fg}[Y]{/} Yank | {cyan-fg}[?]{/} Help | {cyan-fg}[q]{/} Quit",
+		{ keys },
+	);
 }
 
 function visibleLength(value: string): number {
