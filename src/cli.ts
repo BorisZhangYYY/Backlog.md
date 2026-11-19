@@ -5,7 +5,7 @@ import { dirname, isAbsolute, join } from "node:path";
 import { stdin as input } from "node:process";
 import { createInterface } from "node:readline/promises";
 import * as clack from "@clack/prompts";
-import { Command, type OptionValues } from "commander";
+import { type Argument, Command, Help, type Option, type OptionValues } from "commander";
 import { runAdvancedConfigWizard } from "./commands/advanced-config-wizard.ts";
 import { type CompletionInstallResult, installCompletion, registerCompletionCommand } from "./commands/completion.ts";
 import { configureAdvancedSettings } from "./commands/configure-advanced-settings.ts";
@@ -43,6 +43,7 @@ import {
 	taskViewJson,
 } from "./formatters/json-output.ts";
 import { formatTaskPlainText } from "./formatters/task-plain-text.ts";
+import { cliLocale, cliT, localizeHelpText } from "./i18n/cli.ts";
 import {
 	type AgentInstructionFile,
 	addAgentInstructions,
@@ -1068,13 +1069,74 @@ if (shouldRunMigration) {
 	}
 }
 
+/**
+ * Renders commander's help in the language BACKLOG_LANG selects.
+ *
+ * Command names, option flags and example arguments print exactly as defined, so help stays
+ * copy-pasteable; only the wording around them changes.
+ */
+class LocalizedHelp extends Help {
+	constructor(private readonly locale: ReturnType<typeof cliLocale>) {
+		super();
+	}
+
+	override commandDescription(cmd: Command): string {
+		return localizeHelpText(this.locale, super.commandDescription(cmd));
+	}
+
+	override subcommandDescription(cmd: Command): string {
+		return localizeHelpText(this.locale, super.subcommandDescription(cmd));
+	}
+
+	override optionDescription(option: Option): string {
+		return localizeHelpText(this.locale, super.optionDescription(option));
+	}
+
+	override argumentDescription(argument: Argument): string {
+		return localizeHelpText(this.locale, super.argumentDescription(argument));
+	}
+
+	/**
+	 * Commander writes the section headings inside `formatHelp`, so the rendered text is the only
+	 * place to translate them. Only headings at the start of a line are touched, which leaves every
+	 * flag, command name and example exactly as defined.
+	 */
+	override formatHelp(cmd: Command, helper: Help): string {
+		const rendered = super.formatHelp(cmd, helper);
+		if (this.locale === "en") return rendered;
+		return rendered.replace(/^(Usage:|Arguments:|Options:|Global Options:|Commands:)/gm, (heading) =>
+			localizeHelpText(this.locale, heading),
+		);
+	}
+}
+
+/**
+ * Installs the localized help renderer on the command and every subcommand.
+ *
+ * Each command builds its own helper, so the language has to reach all of them; the walk runs once
+ * after every command is registered and before parsing.
+ */
+function localizeHelpTree(command: Command, locale: ReturnType<typeof cliLocale>): void {
+	command.createHelp = () => new LocalizedHelp(locale);
+	for (const subcommand of command.commands) {
+		localizeHelpTree(subcommand, locale);
+	}
+}
+
 const program = new Command();
 program
 	.name("backlog")
 	.description("Backlog.md - Project management CLI")
 	.version(version, "-v, --version", "display version number")
 	.showSuggestionAfterError()
-	.showHelpAfterError("Run with --help to see accepted fields and examples.");
+	.showHelpAfterError("Run with --help to see accepted fields and examples.")
+	// The language switch is an environment variable rather than a flag so it also applies to
+	// commands that run without one, and so a Chinese user can set it once in their shell profile.
+	.addHelpText(
+		"after",
+		() =>
+			`\n${cliT(cliLocale(process.env), "Set BACKLOG_LANG=zh-CN for Simplified Chinese output. Only human-readable text changes; task data, JSON output and exit codes stay the same.")}\n`,
+	);
 
 addHelpSchema(program.command("init [projectName]"), {
 	required: [],
@@ -6273,6 +6335,8 @@ registerInstructionsCommand(program);
 
 // MCP command group
 registerMcpCommand(program);
+
+localizeHelpTree(program, cliLocale(process.env));
 
 program
 	.parseAsync(process.argv)

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { DuplicateRepairPlan } from "../../core/duplicate-task-repair";
 import { apiClient } from "../lib/api";
 import Modal from "./Modal";
+import { useLocale } from '../contexts/LocaleContext';
 
 interface DuplicateIdRepairModalProps {
 	isOpen: boolean;
@@ -11,6 +12,7 @@ interface DuplicateIdRepairModalProps {
 }
 
 export function DuplicateIdRepairModal({ isOpen, plan, onClose, onRepaired }: DuplicateIdRepairModalProps) {
+	const { t } = useLocale();
 	const [showConfirmation, setShowConfirmation] = useState(false);
 	const [isRepairing, setIsRepairing] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -46,7 +48,7 @@ export function DuplicateIdRepairModal({ isOpen, plan, onClose, onRepaired }: Du
 		<Modal
 			isOpen={isOpen}
 			onClose={handleClose}
-			title="Repair duplicate task IDs"
+			title={t('duplicate.repairTitle')}
 			maxWidthClass="max-w-4xl"
 			disableEscapeClose={isRepairing}
 			initialFocusRef={cancelButtonRef}
@@ -58,7 +60,7 @@ export function DuplicateIdRepairModal({ isOpen, plan, onClose, onRepaired }: Du
 				</p>
 
 				<div>
-					<h3 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">Files to rename</h3>
+					<h3 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">{t('duplicate.filesToRename')}</h3>
 					<div className="max-h-64 overflow-y-auto rounded-md border border-gray-200 dark:border-gray-700">
 						<ul className="divide-y divide-gray-200 dark:divide-gray-700">
 							{plan.changes.map((change) => (
@@ -102,7 +104,7 @@ export function DuplicateIdRepairModal({ isOpen, plan, onClose, onRepaired }: Du
 
 				{plan.blockedReasons.length > 0 && (
 					<div className="rounded-md border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950/30">
-						<h3 className="text-sm font-semibold text-red-900 dark:text-red-100">Automatic repair is blocked</h3>
+						<h3 className="text-sm font-semibold text-red-900 dark:text-red-100">{t('duplicate.autoRepairBlocked')}</h3>
 						<ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-red-800 dark:text-red-200">
 							{plan.blockedReasons.map((reason) => (
 								<li key={reason}>{reason}</li>
@@ -113,7 +115,7 @@ export function DuplicateIdRepairModal({ isOpen, plan, onClose, onRepaired }: Du
 
 				{showConfirmation && plan.repairable && (
 					<div className="rounded-md border border-amber-300 bg-amber-100 p-4 dark:border-amber-700 dark:bg-amber-900/30">
-						<h3 className="text-sm font-semibold text-amber-950 dark:text-amber-100">Confirm repair</h3>
+						<h3 className="text-sm font-semibold text-amber-950 dark:text-amber-100">{t('duplicate.confirmRepair')}</h3>
 						<p className="mt-1 text-sm text-amber-900 dark:text-amber-200">
 							Rename {plan.changes.length} task {plan.changes.length === 1 ? "file" : "files"} now? Task content is
 							preserved; only each selected filename and frontmatter ID change.

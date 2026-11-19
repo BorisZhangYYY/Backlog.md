@@ -5,6 +5,7 @@ import type { Task } from '../../types';
 import { formatPriorityLabel } from '../../utils/priority-config';
 import LoadingSpinner from './LoadingSpinner';
 import StoredDate from './StoredDate';
+import { useLocale } from '../contexts/LocaleContext';
 
 interface StatisticsData extends Omit<TaskStatistics, 'statusCounts' | 'priorityCounts'> {
 	statusCounts: Record<string, number>;
@@ -26,10 +27,11 @@ const Statistics: React.FC<StatisticsProps> = ({
 	projectName,
 	dateFormat,
 }) => {
+	const { t } = useLocale();
 	const [statistics, setStatistics] = useState<StatisticsData | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-	const [loadingMessage, setLoadingMessage] = useState('Building statistics...');
+	const [loadingMessage, setLoadingMessage] = useState(t('stats.loading'));
 
 	useEffect(() => {
 		let isMounted = true;
@@ -44,7 +46,7 @@ const Statistics: React.FC<StatisticsProps> = ({
 				
 				// Loading messages that reflect actual backend operations
 				const loadingMessages = [
-					'Building statistics...',
+					t('stats.loading'),
 					'Loading local tasks...',
 					'Loading archived tasks...',
 					'Merging tasks...',
@@ -120,7 +122,7 @@ const Statistics: React.FC<StatisticsProps> = ({
 		return (
 			<div className="p-8 text-center">
 				<div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
-					<p className="text-red-600 dark:text-red-400 font-medium">Error loading statistics</p>
+					<p className="text-red-600 dark:text-red-400 font-medium">{t('stats.loadError')}</p>
 					<p className="text-red-500 dark:text-red-300 text-sm mt-1">{error}</p>
 				</div>
 			</div>
@@ -130,7 +132,7 @@ const Statistics: React.FC<StatisticsProps> = ({
 	if (!statistics) {
 		return (
 			<div className="p-8 text-center">
-				<p className="text-gray-500 dark:text-gray-400">No statistics available</p>
+				<p className="text-gray-500 dark:text-gray-400">{t('stats.noStatistics')}</p>
 			</div>
 		);
 	}
@@ -150,7 +152,7 @@ const Statistics: React.FC<StatisticsProps> = ({
 				<div className="flex-1 min-w-0">
 					<p className="font-medium text-gray-900 dark:text-gray-100 truncate">{task.title}</p>
 					<p className="text-sm text-gray-500 dark:text-gray-400">
-						{task.id} • {showDate === 'created' ? 'Created' : 'Updated'} <StoredDate value={displayDate} dateFormat={dateFormat} />
+						{task.id} • {showDate === 'created' ? t('taskDetails.created') : t('taskDetails.updated')} <StoredDate value={displayDate} dateFormat={dateFormat} />
 					</p>
 				</div>
 			</div>
@@ -243,7 +245,7 @@ const Statistics: React.FC<StatisticsProps> = ({
 		{
 			key: 'no-priority',
 			priority: '',
-			label: 'No Priority',
+			label: t('taskDetails.noPriority'),
 			count: statistics.noPriorityCount,
 		},
 	].filter(({ count }) => count > 0);
@@ -253,10 +255,10 @@ const Statistics: React.FC<StatisticsProps> = ({
 			{/* Header */}
 			<div className="text-center">
 				<h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-					{projectName ? `${projectName} Statistics` : 'Project Statistics'}
+					{projectName ? t('stats.titleWithProject', { project: projectName }) : t('stats.title')}
 				</h1>
 				<p className="text-gray-600 dark:text-gray-400">
-					Overview of your project's task metrics and activity
+					{t('stats.overview')}
 				</p>
 			</div>
 
@@ -272,7 +274,7 @@ const Statistics: React.FC<StatisticsProps> = ({
 						</div>
 						<div className="ml-4">
 							<p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{statistics.totalTasks}</p>
-							<p className="text-gray-600 dark:text-gray-400 text-sm">Total Tasks</p>
+							<p className="text-gray-600 dark:text-gray-400 text-sm">{t('stats.totalTasks')}</p>
 						</div>
 					</div>
 				</div>
@@ -287,7 +289,7 @@ const Statistics: React.FC<StatisticsProps> = ({
 						</div>
 						<div className="ml-4">
 							<p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{statistics.completedTasks}</p>
-							<p className="text-gray-600 dark:text-gray-400 text-sm">Completed</p>
+							<p className="text-gray-600 dark:text-gray-400 text-sm">{t('stats.completed')}</p>
 						</div>
 					</div>
 				</div>
@@ -302,7 +304,7 @@ const Statistics: React.FC<StatisticsProps> = ({
 						</div>
 						<div className="ml-4">
 							<p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{statistics.completionPercentage}%</p>
-							<p className="text-gray-600 dark:text-gray-400 text-sm">Completion</p>
+							<p className="text-gray-600 dark:text-gray-400 text-sm">{t('stats.completion')}</p>
 						</div>
 					</div>
 				</div>
@@ -317,7 +319,7 @@ const Statistics: React.FC<StatisticsProps> = ({
 						</div>
 						<div className="ml-4">
 							<p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{statistics.draftCount}</p>
-							<p className="text-gray-600 dark:text-gray-400 text-sm">Drafts</p>
+							<p className="text-gray-600 dark:text-gray-400 text-sm">{t('stats.drafts')}</p>
 						</div>
 					</div>
 				</div>
@@ -325,7 +327,7 @@ const Statistics: React.FC<StatisticsProps> = ({
 
 			{/* Progress Bar */}
 			<div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-				<h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Overall Progress</h3>
+				<h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{t('stats.overallProgress')}</h3>
 				<div className="w-full bg-gray-200 dark:bg-gray-700 rounded-circle h-4 mb-2">
 					<div 
 						className="bg-gradient-to-r from-blue-500 to-green-500 h-4 rounded-circle transition-all duration-300"
@@ -333,8 +335,8 @@ const Statistics: React.FC<StatisticsProps> = ({
 					></div>
 				</div>
 				<div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-					<span>{statistics.completedTasks} completed</span>
-					<span>{statistics.totalTasks - statistics.completedTasks} remaining</span>
+					<span>{t('stats.completedCount', { count: statistics.completedTasks })}</span>
+					<span>{t('stats.remainingCount', { count: statistics.totalTasks - statistics.completedTasks })}</span>
 				</div>
 			</div>
 
@@ -342,7 +344,7 @@ const Statistics: React.FC<StatisticsProps> = ({
 			<div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 				{/* Status Distribution */}
 				<div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-					<h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Status Distribution</h3>
+					<h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{t('stats.statusDistribution')}</h3>
 					<div className="space-y-4">
 						{Object.entries(statistics.statusCounts)
 							.filter(([, count]) => count > 0)
@@ -375,7 +377,7 @@ const Statistics: React.FC<StatisticsProps> = ({
 
 				{/* Priority Distribution */}
 				<div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-					<h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Priority Distribution</h3>
+					<h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{t('stats.priorityDistribution')}</h3>
 					<div className="space-y-4">
 						{priorityBreakdown.map(({ key, priority, label, count }) => (
 							<div key={key} className="flex items-center justify-between">
@@ -409,7 +411,7 @@ const Statistics: React.FC<StatisticsProps> = ({
 			<div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 				{/* Recently Created */}
 				<div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-					<h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Recently Created</h3>
+					<h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{t('stats.recentlyCreated')}</h3>
 					{statistics.recentActivity.created.length > 0 ? (
 						<div className="space-y-3">
 							{statistics.recentActivity.created.map((task) => (
@@ -421,13 +423,13 @@ const Statistics: React.FC<StatisticsProps> = ({
 							))}
 						</div>
 					) : (
-						<p className="text-gray-500 dark:text-gray-400 text-sm">No recently created tasks</p>
+						<p className="text-gray-500 dark:text-gray-400 text-sm">{t('stats.noRecentCreated')}</p>
 					)}
 				</div>
 
 				{/* Recently Updated */}
 				<div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-					<h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Recently Updated</h3>
+					<h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{t('stats.recentlyUpdated')}</h3>
 					{statistics.recentActivity.updated.length > 0 ? (
 						<div className="space-y-3">
 							{statistics.recentActivity.updated.map((task) => (
@@ -439,7 +441,7 @@ const Statistics: React.FC<StatisticsProps> = ({
 							))}
 						</div>
 					) : (
-						<p className="text-gray-500 dark:text-gray-400 text-sm">No recently updated tasks</p>
+						<p className="text-gray-500 dark:text-gray-400 text-sm">{t('stats.noRecentUpdated')}</p>
 					)}
 				</div>
 			</div>
@@ -447,32 +449,32 @@ const Statistics: React.FC<StatisticsProps> = ({
 			{/* Project Health - Completely redesigned as a summary row */}
 			<div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
 				<div className="flex items-center justify-between">
-					<h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Project Health</h3>
+					<h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('stats.projectHealth')}</h3>
 					
 					<div className="flex items-center space-x-4 text-sm">
 						<div className="flex items-center space-x-1">
-							<span className="text-gray-600 dark:text-gray-400">Avg age:</span>
-							<span className="font-medium text-gray-900 dark:text-gray-100">{statistics.projectHealth.averageTaskAge}d</span>
+							<span className="text-gray-600 dark:text-gray-400">{t('stats.avgAge')}</span>
+							<span className="font-medium text-gray-900 dark:text-gray-100">{t('stats.days', { count: statistics.projectHealth.averageTaskAge })}</span>
 						</div>
 						
 						{statistics.projectHealth.staleTasks.length > 0 && (
 							<div className="flex items-center space-x-1">
 								<div className="w-2 h-2 bg-yellow-500 rounded-circle"></div>
-								<span className="font-medium text-yellow-700 dark:text-yellow-400">{statistics.projectHealth.staleTasks.length} stale</span>
+								<span className="font-medium text-yellow-700 dark:text-yellow-400">{t('stats.staleCount', { count: statistics.projectHealth.staleTasks.length })}</span>
 							</div>
 						)}
 						
 						{statistics.projectHealth.blockedTasks.length > 0 && (
 							<div className="flex items-center space-x-1">
 								<div className="w-2 h-2 bg-red-500 rounded-circle"></div>
-								<span className="font-medium text-red-700 dark:text-red-400">{statistics.projectHealth.blockedTasks.length} blocked</span>
+								<span className="font-medium text-red-700 dark:text-red-400">{t('stats.blockedCount', { count: statistics.projectHealth.blockedTasks.length })}</span>
 							</div>
 						)}
 						
 						{statistics.projectHealth.staleTasks.length === 0 && statistics.projectHealth.blockedTasks.length === 0 && (
 							<div className="flex items-center space-x-1">
 								<div className="w-2 h-2 bg-green-500 rounded-circle"></div>
-								<span className="font-medium text-green-700 dark:text-green-400">All good!</span>
+								<span className="font-medium text-green-700 dark:text-green-400">{t('stats.allGood')}</span>
 							</div>
 						)}
 					</div>
@@ -486,10 +488,10 @@ const Statistics: React.FC<StatisticsProps> = ({
 							{statistics.projectHealth.staleTasks.length > 0 && (
 								<div>
 									<h4 className="font-medium text-yellow-700 dark:text-yellow-400 mb-3 text-sm">
-										Stale Tasks (&gt;30 days)
+									{t('stats.staleTasks')}
 									</h4>
 									<p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
-										Tasks that haven't been updated in over 30 days and may need attention or archiving
+									{t('stats.staleTasksHint')}
 									</p>
 									<div className="space-y-2">
 										{statistics.projectHealth.staleTasks.slice(0, 3).map((task) => (
@@ -502,7 +504,7 @@ const Statistics: React.FC<StatisticsProps> = ({
 										))}
 										{statistics.projectHealth.staleTasks.length > 3 && (
 											<p className="text-xs text-gray-500 dark:text-gray-400 px-3">
-												+{statistics.projectHealth.staleTasks.length - 3} more stale tasks
+											{t('stats.moreStale', { count: statistics.projectHealth.staleTasks.length - 3 })}
 											</p>
 										)}
 									</div>
@@ -513,10 +515,10 @@ const Statistics: React.FC<StatisticsProps> = ({
 							{statistics.projectHealth.blockedTasks.length > 0 && (
 								<div>
 									<h4 className="font-medium text-red-700 dark:text-red-400 mb-3 text-sm">
-										Blocked Tasks
+									{t('stats.blockedTasks')}
 									</h4>
 									<p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
-										Tasks that cannot progress because their dependencies are not yet completed
+									{t('stats.blockedTasksHint')}
 									</p>
 									<div className="space-y-2">
 										{statistics.projectHealth.blockedTasks.slice(0, 3).map((task) => (
@@ -529,7 +531,7 @@ const Statistics: React.FC<StatisticsProps> = ({
 										))}
 										{statistics.projectHealth.blockedTasks.length > 3 && (
 											<p className="text-xs text-gray-500 dark:text-gray-400 px-3">
-												+{statistics.projectHealth.blockedTasks.length - 3} more blocked tasks
+											{t('stats.moreBlocked', { count: statistics.projectHealth.blockedTasks.length - 3 })}
 											</p>
 										)}
 									</div>

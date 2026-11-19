@@ -13,6 +13,7 @@ import { sanitizeUrlTitle } from '../utils/urlHelpers';
 import StoredDate from './StoredDate';
 import { decisionIdKey } from '../../utils/decision-id';
 import { ArchiveButton, ArchivedLabel, ArchiveRefusal, useRecordArchive } from './RecordArchive';
+import { useLocale } from '../contexts/LocaleContext';
 
 // Utility function for ID transformations
 const stripIdPrefix = (id: string): string => {
@@ -77,6 +78,7 @@ interface DecisionDetailProps {
 }
 
 export default function DecisionDetail({ decisions, onRefreshData, dateFormat }: DecisionDetailProps) {
+	const { t } = useLocale();
 	const { id, title } = useParams<{ id: string; title: string }>();
 	const navigate = useNavigate();
 	const [searchParams, setSearchParams] = useSearchParams();
@@ -283,8 +285,8 @@ export default function DecisionDetail({ decisions, onRefreshData, dateFormat }:
 					<svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
 					</svg>
-					<h3 className="mt-2 text-sm font-medium text-gray-900">No decision selected</h3>
-					<p className="mt-1 text-sm text-gray-500">Select a decision from the sidebar to view its content.</p>
+					<h3 className="mt-2 text-sm font-medium text-gray-900">{t('decision.noDecisionSelected')}</h3>
+					<p className="mt-1 text-sm text-gray-500">{t('decision.selectHint')}</p>
 				</div>
 			</div>
 		);
@@ -293,7 +295,7 @@ export default function DecisionDetail({ decisions, onRefreshData, dateFormat }:
 	if (isLoading) {
 		return (
 			<div className="flex-1 flex items-center justify-center">
-				<div className="text-gray-500">Loading...</div>
+				<div className="text-gray-500">{t('decision.loading')}</div>
 			</div>
 		);
 	}
@@ -317,7 +319,7 @@ export default function DecisionDetail({ decisions, onRefreshData, dateFormat }:
 									value={decisionTitle}
 									onChange={(e) => setDecisionTitle(e.target.value)}
 									className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2 w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors duration-200"
-									placeholder="Decision title"
+									placeholder={t('decision.titlePlaceholder')}
 								/>
 							) : (
 								<h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2 transition-colors duration-200">
@@ -336,14 +338,14 @@ export default function DecisionDetail({ decisions, onRefreshData, dateFormat }:
 									<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
 									</svg>
-									<span>Decision</span>
+									<span>{t('decision.title')}</span>
 								</div>
 								{decision?.date && (
 									<div className="flex items-center space-x-2">
 										<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
 										</svg>
-										<span>Date: <StoredDate value={decision.date} dateFormat={dateFormat} /></span>
+										<span>{`${t('decision.date')} `}<StoredDate value={decision.date} dateFormat={dateFormat} /></span>
 									</div>
 								)}
 								{decision?.status && (

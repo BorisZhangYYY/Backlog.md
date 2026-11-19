@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { DuplicateRepairPlan } from "../../core/duplicate-task-repair";
 import { DuplicateIdRepairModal } from "./DuplicateIdRepairModal";
+import { useLocale } from '../contexts/LocaleContext';
 
 interface DuplicateIdWarningProps {
 	plan: DuplicateRepairPlan | null;
@@ -8,6 +9,7 @@ interface DuplicateIdWarningProps {
 }
 
 export function DuplicateIdWarning({ plan, onRepaired }: DuplicateIdWarningProps) {
+	const { t } = useLocale();
 	const [dismissed, setDismissed] = useState(false);
 	const [isRepairOpen, setIsRepairOpen] = useState(false);
 
@@ -31,7 +33,7 @@ export function DuplicateIdWarning({ plan, onRepaired }: DuplicateIdWarningProps
 							/>
 						</svg>
 						<p className="truncate text-sm">
-							<span className="font-semibold">Duplicate task IDs:</span> {plan.groups.length} {plan.groups.length === 1 ? "group" : "groups"} across {duplicateTaskCount} files. Some tasks may be hidden.
+							<span className="font-semibold">{t('duplicate.warningTitle')}</span> {t('duplicate.warningGroups', { groups: plan.groups.length, files: duplicateTaskCount })}
 						</p>
 					</div>
 					<div className="ml-auto flex shrink-0 items-center gap-2">
@@ -46,7 +48,7 @@ export function DuplicateIdWarning({ plan, onRepaired }: DuplicateIdWarningProps
 							type="button"
 							onClick={() => setDismissed(true)}
 							className="inline-flex h-8 w-8 items-center justify-center rounded-md text-amber-800 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 dark:text-amber-100 dark:hover:bg-amber-900"
-							aria-label="Dismiss duplicate task ID warning"
+							aria-label={t('duplicate.dismissWarning')}
 						>
 							<span aria-hidden="true" className="text-xl leading-none">×</span>
 						</button>

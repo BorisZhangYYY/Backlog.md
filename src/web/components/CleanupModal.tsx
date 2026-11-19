@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import Modal from "./Modal";
 import { apiClient } from "../lib/api";
 import StoredDate from "./StoredDate";
+import { useLocale } from '../contexts/LocaleContext';
 
 interface CleanupModalProps {
 	isOpen: boolean;
@@ -33,6 +34,7 @@ type CleanupSelection =
 	| { phase: "preview" | "confirm" | "executing"; age: number; tasks: TaskPreview[] };
 
 const CleanupModal: React.FC<CleanupModalProps> = ({ isOpen, onClose, onSuccess, dateFormat }) => {
+	const { t } = useLocale();
 	const [selection, setSelection] = useState<CleanupSelection>({ phase: "choose" });
 	const [error, setError] = useState<string | null>(null);
 	const requestId = useRef(0);
@@ -117,7 +119,7 @@ const CleanupModal: React.FC<CleanupModalProps> = ({ isOpen, onClose, onSuccess,
 			isOpen={isOpen}
 			onClose={handleClose}
 			disableEscapeClose={isExecuting}
-			title="Clean Up Completed Tasks"
+			title={t('cleanup.title')}
 			maxWidthClass="max-w-3xl"
 		>
 			<div className="space-y-6">
@@ -154,7 +156,7 @@ const CleanupModal: React.FC<CleanupModalProps> = ({ isOpen, onClose, onSuccess,
 				{/* Loading Preview */}
 				{isLoadingPreview && (
 					<div className="text-center py-4">
-						<div className="text-gray-600 dark:text-gray-400">Loading preview...</div>
+						<div className="text-gray-600 dark:text-gray-400">{t('common.loadingPreview')}</div>
 					</div>
 				)}
 
@@ -205,7 +207,7 @@ const CleanupModal: React.FC<CleanupModalProps> = ({ isOpen, onClose, onSuccess,
 				{/* Confirmation Section */}
 				{showConfirmation && previewCount > 0 && (
 					<div className="rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 p-4">
-						<h3 className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-2">Confirm Cleanup</h3>
+						<h3 className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-2">{t('cleanup.confirm')}</h3>
 						<p className="text-sm text-amber-700 dark:text-amber-300">
 							Are you sure you want to archive {previewCount} task{previewCount !== 1 ? "s" : ""}?
 						</p>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { type Task } from '../../types';
 import StoredDate from './StoredDate';
 import { formatPriorityLabel } from '../../utils/priority-config';
+import { useLocale } from '../contexts/LocaleContext';
 
 interface DraftsListProps {
   onEditTask: (task: Task) => void;
@@ -10,6 +11,7 @@ interface DraftsListProps {
 }
 
 const DraftsList: React.FC<DraftsListProps> = ({ onEditTask, onNewDraft, dateFormat }) => {
+  const { t } = useLocale();
   const [drafts, setDrafts] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -85,7 +87,7 @@ const DraftsList: React.FC<DraftsListProps> = ({ onEditTask, onNewDraft, dateFor
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <div className="text-gray-500 dark:text-gray-400">Loading drafts...</div>
+        <div className="text-gray-500 dark:text-gray-400">{t('drafts.loading')}</div>
       </div>
     );
   }
@@ -107,16 +109,16 @@ const DraftsList: React.FC<DraftsListProps> = ({ onEditTask, onNewDraft, dateFor
   return (
     <div className="page-shell transition-colors duration-200">
       <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Draft Tasks</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('drafts.title')}</h1>
           <div className="flex items-center space-x-4">
             <div className="text-sm text-gray-600 dark:text-gray-300">
-              {drafts.length} draft{drafts.length !== 1 ? 's' : ''}
+              {t('drafts.count', { count: drafts.length })}
             </div>
 	            <button 
 	              className="inline-flex items-center px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 dark:focus:ring-offset-gray-900 transition-colors duration-200" 
 	              onClick={onNewDraft}
 	            >
-	              + New Draft
+	              {t('drafts.newDraft')}
             </button>
           </div>
         </div>
@@ -126,8 +128,8 @@ const DraftsList: React.FC<DraftsListProps> = ({ onEditTask, onNewDraft, dateFor
             <svg className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
             </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No drafts</h3>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Draft tasks will appear here before they're promoted to the main backlog.</p>
+            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">{t('drafts.noDrafts')}</h3>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{t('drafts.emptyHint')}</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -148,14 +150,14 @@ const DraftsList: React.FC<DraftsListProps> = ({ onEditTask, onNewDraft, dateFor
                     </div>
                     <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400 mb-2">
                       <span>{draft.id}</span>
-                      <span>Created: <StoredDate value={draft.createdDate} dateFormat={dateFormat} /></span>
+                      <span>{`${t('drafts.created')} `}<StoredDate value={draft.createdDate} dateFormat={dateFormat} /></span>
                       {draft.updatedDate && (
-                        <span>Updated: <StoredDate value={draft.updatedDate} dateFormat={dateFormat} /></span>
+                        <span>{`${t('drafts.updated')} `}<StoredDate value={draft.updatedDate} dateFormat={dateFormat} /></span>
                       )}
                     </div>
                     {draft.assignee && draft.assignee.length > 0 && (
                       <div className="flex items-center space-x-2 mb-2">
-                        <span className="text-sm text-gray-500 dark:text-gray-400">Assigned to:</span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">{t('drafts.assignedTo')}</span>
                         <div className="flex flex-wrap gap-1">
                           {draft.assignee.map((person) => (
                             <span key={person} className="px-2 py-1 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200 rounded-circle">

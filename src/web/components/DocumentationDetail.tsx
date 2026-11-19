@@ -12,6 +12,7 @@ import { sanitizeUrlTitle } from '../utils/urlHelpers';
 import StoredDate from './StoredDate';
 import { documentIdKey } from '../../utils/document-id';
 import { ArchiveButton, ArchivedLabel, ArchiveRefusal, useRecordArchive } from './RecordArchive';
+import { useLocale } from '../contexts/LocaleContext';
 
 // Custom MDEditor wrapper for proper height handling
 const MarkdownEditor = memo(function MarkdownEditor({
@@ -77,6 +78,7 @@ interface DocumentationDetailProps {
 }
 
 export default function DocumentationDetail({docs, onRefreshData, dateFormat}: DocumentationDetailProps) {
+    const { t } = useLocale();
     const {id, title} = useParams<{ id: string; title: string }>();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -310,7 +312,7 @@ export default function DocumentationDetail({docs, onRefreshData, dateFormat}: D
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                               d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                     </svg>
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">No document selected</h3>
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">{t('docs.noDocumentSelected')}</h3>
                     <p className="mt-1 text-sm text-gray-500">Select a document from the sidebar to view its
                         content.</p>
                 </div>
@@ -321,7 +323,7 @@ export default function DocumentationDetail({docs, onRefreshData, dateFormat}: D
     if (isLoading) {
         return (
             <div className="flex-1 flex items-center justify-center">
-                <div className="text-gray-500">Loading...</div>
+                <div className="text-gray-500">{t('docs.loading')}</div>
             </div>
         );
     }
@@ -346,7 +348,7 @@ export default function DocumentationDetail({docs, onRefreshData, dateFormat}: D
                                             value={docTitle}
                                             onChange={(e) => setDocTitle(e.target.value)}
                                             className="text-3xl font-bold text-gray-900 dark:text-gray-100 w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors duration-200"
-                                            placeholder="Document title"
+                                            placeholder={t('docs.titlePlaceholder')}
                                         />
                                         <input
                                             type="text"
@@ -375,7 +377,7 @@ export default function DocumentationDetail({docs, onRefreshData, dateFormat}: D
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                                                   d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
                                         </svg>
-                                        <span>Documentation</span>
+                                        <span>{t('docs.title')}</span>
                                     </div>
                                     {document?.path && (
                                         <div className="flex items-center space-x-2">
@@ -393,7 +395,7 @@ export default function DocumentationDetail({docs, onRefreshData, dateFormat}: D
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                                                       d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                             </svg>
-                                            <span>Created: <StoredDate value={document.createdDate} dateFormat={dateFormat} /></span>
+                                            <span>{`${t('taskDetails.created')} `}<StoredDate value={document.createdDate} dateFormat={dateFormat} /></span>
                                         </div>
                                     )}
                                 </div>

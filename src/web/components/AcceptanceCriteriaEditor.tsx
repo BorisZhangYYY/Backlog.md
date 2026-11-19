@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { type AcceptanceCriterion } from "../../types";
 import { normalizeAcceptanceCriterionText } from "../../utils/acceptance-criteria.ts";
+import { useLocale } from '../contexts/LocaleContext';
 
 interface Props {
   criteria: AcceptanceCriterion[];
@@ -14,11 +15,12 @@ interface Props {
 const AcceptanceCriteriaEditor: React.FC<Props> = ({
   criteria: initial,
   onChange,
-  label = "Acceptance Criteria",
+  label,
   preserveIndices = false,
   disableToggle = false,
   singleLine = true,
 }) => {
+  const { t } = useLocale();
   const [criteria, setCriteria] = useState<AcceptanceCriterion[]>(initial || []);
   const [newCriterion, setNewCriterion] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -108,7 +110,7 @@ const AcceptanceCriteriaEditor: React.FC<Props> = ({
   return (
     <div className="space-y-2">
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 transition-colors duration-200">
-        {label}
+        {label ?? t('common.acceptanceCriteria')}
       </label>
       <ul className="space-y-2">
         {criteria.map((c) => (
@@ -136,7 +138,7 @@ const AcceptanceCriteriaEditor: React.FC<Props> = ({
               onClick={() => handleRemove(c.index)}
               className="px-2 py-1 text-sm text-red-600 dark:text-red-400 hover:underline"
             >
-              Remove
+              {t('common.remove')}
             </button>
           </li>
         ))}
@@ -144,7 +146,7 @@ const AcceptanceCriteriaEditor: React.FC<Props> = ({
           <textarea
             ref={newRef}
             rows={1}
-            aria-label={`New ${label} item`}
+            aria-label={t('common.newItem', { label: label ?? t('common.acceptanceCriteria') })}
             value={newCriterion}
             onChange={(e) => {
               if (validateText(e.target.value)) setNewCriterion(e.target.value);
@@ -152,7 +154,7 @@ const AcceptanceCriteriaEditor: React.FC<Props> = ({
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
             onInput={(e) => autoResize(e.currentTarget)}
-            placeholder="New criterion"
+            placeholder={t('common.newCriterion')}
             className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-stone-500 dark:focus:ring-stone-400 focus:border-transparent transition-colors duration-200 resize-none overflow-hidden leading-5"
           />
           <button
@@ -160,7 +162,7 @@ const AcceptanceCriteriaEditor: React.FC<Props> = ({
             onClick={handleAdd}
             className="px-2 py-1 text-sm bg-blue-500 dark:bg-blue-600 text-white rounded-md hover:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 focus:ring-blue-400 dark:focus:ring-blue-500 transition-colors duration-200"
           >
-            Add
+            {t('common.add')}
           </button>
         </li>
       </ul>

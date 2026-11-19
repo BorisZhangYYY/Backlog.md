@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocale } from "../contexts/LocaleContext";
 
 interface LabelFilterDropdownProps {
 	availableLabels: string[];
@@ -18,11 +19,12 @@ export default function LabelFilterDropdown({
 	onChange,
 	menuId,
 	className = "min-w-[200px]",
-	label = "Labels",
-	emptyLabel = "All",
-	noOptionsLabel = "No labels",
-	clearLabel = "Clear label filter",
+	label,
+	emptyLabel,
+	noOptionsLabel,
+	clearLabel,
 }: LabelFilterDropdownProps) {
+	const { t } = useLocale();
 	const [isOpen, setIsOpen] = useState(false);
 	const buttonRef = useRef<HTMLButtonElement | null>(null);
 	const menuRef = useRef<HTMLDivElement | null>(null);
@@ -62,13 +64,13 @@ export default function LabelFilterDropdown({
 				className={`${className} py-2 px-3 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-stone-500 dark:focus:ring-stone-400 transition-colors duration-200 text-left`}
 			>
 				<div className="flex items-center justify-between gap-2">
-					<span>{label}</span>
+					<span>{label ?? t('taskList.columnLabels')}</span>
 					<span className="text-xs text-gray-500 dark:text-gray-400">
 						{selectedLabels.length === 0
-							? emptyLabel
+							? (emptyLabel ?? t('common.all'))
 							: selectedLabels.length === 1
 								? selectedLabels[0]
-								: `${selectedLabels.length} selected`}
+								: t('taskList.selectedCount', { count: selectedLabels.length })}
 					</span>
 				</div>
 			</button>
@@ -79,7 +81,9 @@ export default function LabelFilterDropdown({
 					className="absolute z-50 mt-2 w-[220px] max-h-56 overflow-y-auto rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg"
 				>
 					{availableLabels.length === 0 ? (
-						<div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">{noOptionsLabel}</div>
+						<div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+							{noOptionsLabel ?? t('taskList.noLabels')}
+						</div>
 					) : (
 						availableLabels.map((label) => {
 							const isSelected = selectedLabels.includes(label);
@@ -108,7 +112,7 @@ export default function LabelFilterDropdown({
 								setIsOpen(false);
 							}}
 						>
-							{clearLabel}
+							{clearLabel ?? t('taskList.clearLabelFilter')}
 						</button>
 					)}
 				</div>

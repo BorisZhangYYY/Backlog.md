@@ -1,6 +1,7 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient, readMovedFailureState } from '../lib/api';
+import { useLocale } from '../contexts/LocaleContext';
 
 /**
  * The Archive button of the document page and the decision page, and what it does. It extends the
@@ -136,6 +137,7 @@ export function ArchivedLabel() {
 
 /** The server's message when it refused the archive, under the header, until dismissed. */
 export function ArchiveRefusal({ message, onDismiss }: { message: string; onDismiss: () => void }) {
+	const { t } = useLocale();
 	return (
 		<div role="alert" className="max-w-4xl mx-auto px-8 pb-4">
 			<div className="flex items-start gap-3 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/30 px-4 py-3">
@@ -143,7 +145,7 @@ export function ArchiveRefusal({ message, onDismiss }: { message: string; onDism
 				<button
 					type="button"
 					onClick={onDismiss}
-					aria-label="Dismiss"
+					aria-label={t('common.dismiss')}
 					className="text-red-700 hover:text-red-900 dark:text-red-200 dark:hover:text-red-100 focus:outline-none focus:ring-2 focus:ring-red-400 rounded"
 				>
 					<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
