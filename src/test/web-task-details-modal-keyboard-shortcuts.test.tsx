@@ -158,7 +158,7 @@ describe("Web task popup keyboard shortcuts", () => {
 				"e",
 			],
 			["dependency", container.querySelector("#dependency-input"), "e"],
-			["select", container.querySelector("select"), "e"],
+			["combobox", container.querySelector('[role="combobox"][aria-label="Status"]'), "e"],
 			["content editable descendant", contentEditableChild, "e"],
 		];
 

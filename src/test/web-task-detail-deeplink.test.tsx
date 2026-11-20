@@ -9,6 +9,7 @@ import { isValidTaskId, resolveTaskById } from "../utils/task-id.ts";
 import App from "../web/App.tsx";
 import { HealthCheckProvider } from "../web/contexts/HealthCheckContext.tsx";
 import { setNativeInputValue } from "./react-dom-input.ts";
+import { comboboxLabels, getCombobox } from "./web-select-helpers";
 
 const tasks: Task[] = [
 	{
@@ -1141,8 +1142,7 @@ describe("task detail routes", () => {
 		expect(container.textContent).toContain(customerTask.title);
 		expect(container.textContent).not.toContain(tasks[0]?.title ?? "");
 		expect(new URLSearchParams(window.location.search).get("type")).toBe("Customer Request");
-		const typeSelect = container.querySelector("select[aria-label='Filter board by type']") as HTMLSelectElement;
-		expect(Array.from(typeSelect.options).map((option) => option.value)).toContain("Customer Request");
+		expect(await comboboxLabels(getCombobox(container, "Filter board by type"))).toContain("Customer Request");
 	});
 
 	it("keeps a filtered board query when a sidebar search result opens and closes", async () => {

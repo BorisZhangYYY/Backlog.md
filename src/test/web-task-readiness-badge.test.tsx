@@ -9,6 +9,7 @@ import { TaskDetailsModal } from "../web/components/TaskDetailsModal";
 import { apiClient } from "../web/lib/api.ts";
 import { TaskIdIndexProvider } from "../web/contexts/TaskIdIndexContext.tsx";
 import { ThemeProvider } from "../web/contexts/ThemeContext";
+import { chooseComboboxOption, getCombobox } from "./web-select-helpers";
 
 const statuses = ["To Do", "In Progress", "Done"];
 
@@ -118,16 +119,7 @@ describe("task readiness badge against an optimistic edit", () => {
 		const originalUpdateTask = apiClient.updateTask.bind(apiClient);
 		apiClient.updateTask = () => new Promise(() => {});
 		try {
-			const select = Array.from(container.querySelectorAll("select")).find((element) =>
-				Array.from(element.options).some((option) => option.value === "Done"),
-			);
-			expect(select).toBeTruthy();
-			await act(async () => {
-				const valueSetter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, "value")?.set;
-				valueSetter?.call(select, "Done");
-				select?.dispatchEvent(new window.Event("change", { bubbles: true }));
-				await Promise.resolve();
-			});
+			await chooseComboboxOption(getCombobox(container, "Status"), "Done");
 
 			// A finished task is neither ready nor blocked, so the carried verdict must not stand.
 			expect(container.textContent).not.toContain("Blocked by BACK-1");

@@ -8,6 +8,7 @@ import { ThemeProvider } from "../web/contexts/ThemeContext";
 import { TaskDetailsModal } from "../web/components/TaskDetailsModal";
 import { ApiError, apiClient } from "../web/lib/api.ts";
 import { setNativeInputValue } from "./react-dom-input.ts";
+import { chooseComboboxOption, getCombobox, openCombobox } from "./web-select-helpers";
 
 let activeRoot: Root | null = null;
 
@@ -374,15 +375,9 @@ describe("Web task popup Final Summary display", () => {
 			};
 			await renderTask(task);
 			await act(async () => { clickElement(findButton(container, "Edit")!); });
-			const priority = Array.from(container.querySelectorAll("select")).find((select) => select.textContent?.includes("No Priority"))!;
-			const changePriority = async (value: string) => {
-				await act(async () => {
-					priority.value = value;
-					priority.dispatchEvent(new window.Event("change", { bubbles: true }));
-				});
-			};
-			await changePriority("high");
-			await changePriority("low");
+			const priority = getCombobox(container, "Priority");
+			await chooseComboboxOption(priority, "High");
+			await chooseComboboxOption(priority, "Low");
 			await act(async () => { releaseFirst(); });
 			await waitFor(() => writes.length === 2);
 			expect(writes.map((write) => write.priority)).toEqual(["high", "low"]);
@@ -694,51 +689,18 @@ describe("Web task popup Final Summary display", () => {
 		expect(html).toContain("PR-style summary of what was implemented");
 	});
 
-	it("resolves numeric milestone aliases to milestone IDs in the milestone selector", () => {
-		setupDom();
-
-		const task: Task = {
-			id: "TASK-3",
-			title: "Task with numeric milestone alias",
-			status: "To Do",
-			assignee: [],
-			createdDate: "2025-01-01",
-			labels: [],
-			dependencies: [],
-			milestone: "1",
-		};
-		const milestones: Milestone[] = [
-			{
-				id: "m-1",
-				title: "Release 1",
-				description: "Milestone: Release 1",
-				rawContent: "## Description\n\nMilestone: Release 1",
-			},
-		];
-
-		const html = renderToString(
-			<ThemeProvider>
-				<TaskDetailsModal task={task} isOpen={true} onClose={() => {}} milestoneEntities={milestones} />
-			</ThemeProvider>,
-		);
-
-		expect(html).toContain('option value="m-1"');
-		expect(html).toContain("Release 1");
-		expect(html).not.toContain('option value="1"');
-	});
-
-	it("resolves zero-padded milestone aliases to canonical milestone IDs in the milestone selector", () => {
+	it.each(["1", "m-01"])("selects the configured milestone for stored alias %s without adding a duplicate", async (alias) => {
 		setupDom();
 
 		const task: Task = {
 			id: "TASK-4",
-			title: "Task with zero-padded milestone alias",
+			title: "Task with a milestone alias",
 			status: "To Do",
 			assignee: [],
 			createdDate: "2025-01-01",
 			labels: [],
 			dependencies: [],
-			milestone: "m-01",
+			milestone: alias,
 		};
 		const milestones: Milestone[] = [
 			{
@@ -749,17 +711,21 @@ describe("Web task popup Final Summary display", () => {
 			},
 		];
 
-		const html = renderToString(
-			<ThemeProvider>
-				<TaskDetailsModal task={task} isOpen={true} onClose={() => {}} milestoneEntities={milestones} />
-			</ThemeProvider>,
-		);
-
-		expect(html).toContain('option value="m-1"');
-		expect(html).not.toContain('option value="m-01"');
+		const container = document.getElementById("root")!;
+		activeRoot = createRoot(container);
+		await act(async () => {
+			activeRoot?.render(
+				<ThemeProvider>
+					<TaskDetailsModal task={task} isOpen={true} onClose={() => {}} milestoneEntities={milestones} />
+				</ThemeProvider>,
+			);
+		});
+		const options = await openCombobox(getCombobox(container, "Milestone"));
+		expect(options.map((option) => option.textContent)).toEqual(["No milestone", "Release 1"]);
+		expect(options[1]?.getAttribute("aria-selected")).toBe("true");
 	});
 
-	it("prefers archived milestone IDs over active title matches for ID-shaped values", () => {
+	it("prefers archived milestone IDs over active title matches for ID-shaped values", async () => {
 		setupDom();
 
 		const task: Task = {
@@ -789,19 +755,23 @@ describe("Web task popup Final Summary display", () => {
 			},
 		];
 
-		const html = renderToString(
-			<ThemeProvider>
-				<TaskDetailsModal
-					task={task}
-					isOpen={true}
-					onClose={() => {}}
-					milestoneEntities={milestones}
-					archivedMilestoneEntities={archivedMilestones}
-				/>
-			</ThemeProvider>,
-		);
-
-		expect(html).toContain('option value="m-0"');
-		expect(html).not.toContain('option value="m-2" selected');
+		const container = document.getElementById("root")!;
+		activeRoot = createRoot(container);
+		await act(async () => {
+			activeRoot?.render(
+				<ThemeProvider>
+					<TaskDetailsModal
+						task={task}
+						isOpen={true}
+						onClose={() => {}}
+						milestoneEntities={milestones}
+						archivedMilestoneEntities={archivedMilestones}
+					/>
+				</ThemeProvider>,
+			);
+		});
+		const options = await openCombobox(getCombobox(container, "Milestone"));
+		expect(options.find((option) => option.getAttribute("aria-selected") === "true")?.textContent).toContain("Archived source");
+		expect(options.find((option) => option.textContent === "m-0")?.getAttribute("aria-selected")).toBe("false");
 	});
 });

@@ -7,6 +7,7 @@ import type { BacklogConfig, SearchResult, Task } from "../types/index.ts";
 import App from "../web/App.tsx";
 import { HealthCheckProvider } from "../web/contexts/HealthCheckContext.tsx";
 import { apiClient } from "../web/lib/api.ts";
+import { chooseComboboxOption, getCombobox } from "./web-select-helpers";
 
 const statuses = ["To Do", "In Progress", "Done"];
 
@@ -220,25 +221,18 @@ describe("open task detail across refreshes", () => {
 		const button = (text: string) => Array.from(container.querySelectorAll("button"))
 			.find((candidate) => candidate.textContent?.trim() === text)!;
 		await act(async () => { button("Edit").click(); });
-		const priority = Array.from(container.querySelectorAll("select"))
-			.find((select) => select.textContent?.includes("No Priority"))!;
-		const changePriority = async (value: string) => {
-			await act(async () => {
-				priority.value = value;
-				priority.dispatchEvent(new window.Event("change", { bubbles: true }));
-			});
-		};
+		const priority = getCombobox(container.querySelector<HTMLElement>('[role="dialog"]')!, "Priority");
 		holdReads = true;
-		await changePriority("high");
+		await chooseComboboxOption(priority, "High");
 		await waitFor("the first own detail refresh", () => pending.length > 0);
 		const firstRefresh = pending[0]!;
 		holdSearch = true;
-		await changePriority("low");
+		await chooseComboboxOption(priority, "Low");
 		await settle(2);
 		await act(async () => { firstRefresh(detailFor(first)); });
 		await settle(2);
 		expect(revisions).toEqual(["opened", "first-save"]);
-		expect(priority.value).toBe("low");
+		expect(priority.textContent).toBe("Low");
 		expect(button("Save").disabled).toBe(false);
 		expect(container.textContent).not.toContain("A newer version of this task is available");
 
@@ -252,7 +246,7 @@ describe("open task detail across refreshes", () => {
 		});
 		await waitForText(container, "A newer version of this task is available");
 		expect(button("Save").disabled).toBe(true);
-		expect(priority.value).toBe("low");
+		expect(priority.textContent).toBe("Low");
 	});
 
 	it("re-reads the detail on a refresh that changed nothing the browser can see", async () => {

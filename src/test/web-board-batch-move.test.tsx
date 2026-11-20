@@ -5,6 +5,7 @@ import { createRoot, type Root } from "react-dom/client";
 import type { Milestone, Task } from "../types/index.ts";
 import Board from "../web/components/Board.tsx";
 import { apiClient, type MoveTasksPayload } from "../web/lib/api.ts";
+import { chooseComboboxOption, closeCombobox, openCombobox } from "./web-select-helpers";
 
 const STATUSES = ["To Do", "In Progress", "Done"];
 
@@ -305,13 +306,11 @@ describe("Web board batch move", () => {
 			await clickCard(getCard(container, "TASK-1"), { ctrlKey: true });
 			await clickCard(getCard(container, "TASK-3"), { ctrlKey: true });
 
-			const select = container.querySelector("#batch-move-status") as HTMLSelectElement;
-			expect(select).toBeTruthy();
-			await act(async () => {
-				select.value = "Done";
-				select.dispatchEvent(new window.Event("change", { bubbles: true }));
-				await Promise.resolve();
-			});
+			const select = container.querySelector<HTMLButtonElement>("#batch-move-status")!;
+			await openCombobox(select);
+			await closeCombobox(select);
+			expect(selectedCardIds(container)).toEqual(["TASK-1", "TASK-3"]);
+			await chooseComboboxOption(select, "Done");
 
 			await act(async () => {
 				findButton(container, "Move").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
@@ -417,12 +416,8 @@ describe("Web board batch move", () => {
 			const container = renderMilestoneBoard();
 			await clickCard(getCard(container, "TASK-1"), { ctrlKey: true });
 
-			const select = container.querySelector("#batch-move-status") as HTMLSelectElement;
-			await act(async () => {
-				select.value = "Done";
-				select.dispatchEvent(new window.Event("change", { bubbles: true }));
-				await Promise.resolve();
-			});
+			const select = container.querySelector<HTMLButtonElement>("#batch-move-status")!;
+			await chooseComboboxOption(select, "Done");
 			await act(async () => {
 				findButton(container, "Move").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
 				await Promise.resolve();
@@ -616,12 +611,8 @@ describe("Web board batch move", () => {
 			const container = renderBoard();
 			await clickCard(getCard(container, "TASK-1"), { ctrlKey: true });
 
-			const select = container.querySelector("#batch-move-status") as HTMLSelectElement;
-			await act(async () => {
-				select.value = "To Do";
-				select.dispatchEvent(new window.Event("change", { bubbles: true }));
-				await Promise.resolve();
-			});
+			const select = container.querySelector<HTMLButtonElement>("#batch-move-status")!;
+			await chooseComboboxOption(select, "To Do");
 			await act(async () => {
 				findButton(container, "Move").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
 				await Promise.resolve();

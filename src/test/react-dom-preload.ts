@@ -29,4 +29,25 @@ export async function initializeReactDomForTests(loadReactDom: () => Promise<unk
 	}
 }
 
-await initializeReactDomForTests(async () => await import("react-dom/client"));
+await initializeReactDomForTests(async () => {
+	await import("react-dom/client");
+	await import("@base-ui/react/select");
+});
+
+// DOM helpers used by the dropdown's positioning library must come from the active JSDOM window.
+globalThis.requestAnimationFrame ??= (callback) => window.setTimeout(() => callback(performance.now()), 0);
+globalThis.cancelAnimationFrame ??= (id) => window.clearTimeout(id);
+for (const name of ["Element", "HTMLElement", "Node", "ShadowRoot", "getComputedStyle"] as const) {
+	if (name in globalThis) continue;
+	let override: unknown;
+	Object.defineProperty(globalThis, name, {
+		configurable: true,
+		get() {
+			if (!globalThis.window) return override;
+			return override ?? (name === "getComputedStyle" ? window.getComputedStyle.bind(window) : window[name]);
+		},
+		set(value: unknown) {
+			override = value;
+		},
+	});
+}

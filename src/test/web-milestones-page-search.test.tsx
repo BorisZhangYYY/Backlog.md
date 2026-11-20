@@ -9,6 +9,7 @@ import MilestonesPage from "../web/components/MilestonesPage.tsx";
 import { apiClient } from "../web/lib/api.ts";
 import { pinTimeZone } from "./pin-timezone.ts";
 import { setNativeInputValue } from "./react-dom-input.ts";
+import { chooseComboboxOption, comboboxLabels, getCombobox } from "./web-select-helpers";
 
 const createTask = (overrides: Partial<Task>): Task => ({
 	id: "task-1",
@@ -87,6 +88,7 @@ const renderPage = (
 	options: {
 		onRefreshData?: () => Promise<void>;
 		dateFormat?: string;
+		milestones?: Milestone[];
 	} = {},
 ): HTMLElement => {
 	setupDom();
@@ -99,7 +101,7 @@ const renderPage = (
 				<MilestonesPage
 					tasks={tasks}
 					statuses={["To Do", "In Progress", "Done"]}
-					milestoneEntities={milestoneEntities}
+					milestoneEntities={options.milestones ?? milestoneEntities}
 					archivedMilestones={[]}
 					onEditTask={() => {}}
 					onRefreshData={options.onRefreshData}
@@ -281,7 +283,7 @@ describe("Web milestones page search", () => {
 		expect(input?.value).toBe("Release 1");
 	});
 
-	it("opens a remove confirmation with clear and reassign choices", () => {
+	it("opens a remove confirmation with clear and reassign choices", async () => {
 		const container = renderPage();
 		const removeButtons = Array.from(container.querySelectorAll("button")).filter((button) =>
 			button.textContent?.includes("Remove"),
@@ -295,9 +297,10 @@ describe("Web milestones page search", () => {
 		expect(text).toContain("Leave tasks unassigned");
 		expect(text).toContain("Reassign tasks");
 
-		const select = container.querySelector("select") as HTMLSelectElement | null;
-		expect(select).toBeTruthy();
-		expect(Array.from(select?.options ?? []).map((option) => option.value)).toContain("m-2");
+		const select = getCombobox(container, "Milestone");
+		expect(select.disabled).toBe(true);
+		clickElement(container.querySelector<HTMLInputElement>("input[value='reassign']")!);
+		expect(await comboboxLabels(select)).toEqual(["Release 2"]);
 	});
 
 	it("submits milestone edits through the API and refreshes data", async () => {
@@ -345,6 +348,7 @@ describe("Web milestones page search", () => {
 		};
 
 		const container = renderPage(baseTasks, {
+			milestones: [...milestoneEntities, { id: "m-3", title: "Release 3", description: "", rawContent: "" }],
 			onRefreshData: async () => {
 				refreshCount += 1;
 			},
@@ -357,14 +361,10 @@ describe("Web milestones page search", () => {
 		const reassignRadio = container.querySelector("input[value='reassign']") as HTMLInputElement | null;
 		expect(reassignRadio).toBeTruthy();
 		clickElement(reassignRadio as HTMLInputElement);
-		const select = container.querySelector("select") as HTMLSelectElement | null;
-		expect(select).toBeTruthy();
-		act(() => {
-			if (select) {
-				select.value = "m-2";
-				select.dispatchEvent(new window.Event("change", { bubbles: true }));
-			}
-		});
+		const target = getCombobox(container, "Milestone");
+		expect(target.textContent).toBe("Release 2");
+		await chooseComboboxOption(target, "Release 3");
+		expect(removeArgs).toBeUndefined();
 		const submitButton = Array.from(container.querySelectorAll("button")).find(
 			(button) => button.textContent === "Remove milestone",
 		);
@@ -372,7 +372,7 @@ describe("Web milestones page search", () => {
 		await clickElementAsync(submitButton as HTMLButtonElement);
 
 		expect(removeArgs?.[0]).toBe("m-1");
-		expect(removeArgs?.[1]).toEqual({ taskHandling: "reassign", reassignTo: "m-2" });
+		expect(removeArgs?.[1]).toEqual({ taskHandling: "reassign", reassignTo: "m-3" });
 		expect(refreshCount).toBe(1);
 	});
 

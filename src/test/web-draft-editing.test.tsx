@@ -8,6 +8,7 @@ import DraftsList from "../web/components/DraftsList.tsx";
 import { TaskDetailsModal } from "../web/components/TaskDetailsModal.tsx";
 import { TaskIdIndexProvider } from "../web/contexts/TaskIdIndexContext.tsx";
 import { ThemeProvider } from "../web/contexts/ThemeContext.tsx";
+import { comboboxLabels, getCombobox } from "./web-select-helpers";
 
 let activeRoot: Root | null = null;
 const originalFetch = globalThis.fetch;
@@ -141,25 +142,15 @@ describe("Web task popup status field", () => {
 		return container;
 	}
 
-	function statusField(container: HTMLElement): { options: string[]; selected?: string; disabled?: boolean } {
-		const select = container.querySelector("select") as HTMLSelectElement | null;
-		expect(select).toBeTruthy();
-		return {
-			options: Array.from(select?.options ?? []).map((option) => option.value),
-			selected: select?.value,
-			disabled: select?.disabled,
-		};
-	}
 
 	it("shows the status a draft actually has instead of the first configured status", async () => {
 		serveStatuses();
 		const container = await renderModal(draft("DRAFT-1", "Draft under review"));
 
-		const { options, selected, disabled } = statusField(container);
-		expect(options).toEqual(["Draft", "To Do", "In Progress", "Done"]);
-		expect(selected).toBe("Draft");
+		const status = getCombobox(container, "Status");
+		expect(status.textContent).toBe("Draft");
 		// Promotion stays on the Drafts page action, which is the only place that reports the new ID.
-		expect(disabled).toBe(true);
+		expect(status.disabled).toBe(true);
 	});
 
 	it("offers only the configured statuses for a task", async () => {
@@ -174,9 +165,9 @@ describe("Web task popup status field", () => {
 			createdDate: "2026-08-15 10:00",
 		});
 
-		const { options, selected, disabled } = statusField(container);
-		expect(options).toEqual(["To Do", "In Progress", "Done"]);
-		expect(selected).toBe("To Do");
-		expect(disabled).toBe(false);
+		const status = getCombobox(container, "Status");
+		expect(await comboboxLabels(status)).toEqual(["To Do", "In Progress", "Done"]);
+		expect(status.textContent).toBe("To Do");
+		expect(status.disabled).toBe(false);
 	});
 });

@@ -5,6 +5,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import type { Task } from "../types/index.ts";
 import TaskList from "../web/components/TaskList.tsx";
+import { getCombobox } from "./web-select-helpers";
 import {
 	ORDER_FIXTURE_ORDERS,
 	ORDER_FIXTURE_PRIORITIES,
@@ -114,13 +115,6 @@ const clickElement = async (element: Element) => {
 	});
 };
 
-const getSelectByFirstOption = (container: HTMLElement, firstOptionText: string): HTMLSelectElement => {
-	const select = Array.from(container.querySelectorAll("select")).find(
-		(element) => element.options[0]?.textContent === firstOptionText,
-	);
-	expect(select).toBeTruthy();
-	return select as HTMLSelectElement;
-};
 
 const waitFor = async (predicate: () => boolean) => {
 	for (let attempt = 0; attempt < 10; attempt += 1) {
@@ -591,7 +585,7 @@ describe("TaskList labels filter menu", () => {
 		);
 
 		expect(new URL(fetchCalls[0] ?? "", "http://localhost").searchParams.get("priority")).toBe("very high");
-		expect(getSelectByFirstOption(container, "All priorities").value).toBe("very high");
+		expect(getCombobox(container, "Priority").textContent).toBe("Very High");
 		expect(container.textContent).toContain("Escalate incident");
 	});
 
@@ -612,7 +606,7 @@ describe("TaskList labels filter menu", () => {
 		await waitFor(() => new URLSearchParams(getLocationSearch(container)).get("priority") === null);
 
 		expect(fetchCalls).toEqual([]);
-		expect(getSelectByFirstOption(container, "All priorities").value).toBe("");
+		expect(getCombobox(container, "Priority").textContent).toBe("All priorities");
 		expect(getRenderedTaskIds(container)).toEqual(["task-102", "task-101"]);
 	});
 

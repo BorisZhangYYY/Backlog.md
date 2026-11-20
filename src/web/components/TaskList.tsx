@@ -24,6 +24,7 @@ import AcceptanceCriteriaProgress, { getAcceptanceCriteriaProgressCounts } from 
 import LabelFilterDropdown from "./LabelFilterDropdown";
 import { SuccessToast } from "./SuccessToast";
 import { useLocale } from "../contexts/LocaleContext";
+import ThemedSelect from "./ThemedSelect";
 
 interface TaskListProps {
 	onEditTask: (task: Task) => void;
@@ -767,31 +768,25 @@ const TaskList: React.FC<TaskListProps> = ({
 							className="min-w-[210px]"
 						/>
 
-						<select
+						<ThemedSelect
+							aria-label={t('taskList.columnPriority')}
 							value={priorityFilter}
-							onChange={(event) => handlePriorityChange(event.target.value)}
-							className="min-w-[120px] h-10 py-2 px-3 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-stone-500 dark:focus:ring-stone-400 transition-colors duration-200"
-						>
-							{priorityOptions.map((option) => (
-								<option key={option.value || "all"} value={option.value}>
-									{option.label}
-								</option>
-							))}
-						</select>
+							onChange={handlePriorityChange}
+							className="h-10 min-w-[120px]"
+							options={priorityOptions}
+						/>
 
-						<select
+						<ThemedSelect
+							aria-label={t('taskList.columnMilestone')}
 							value={milestoneFilter}
-							onChange={(event) => handleMilestoneChange(event.target.value)}
-							className="min-w-[160px] h-10 py-2 px-3 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-stone-500 dark:focus:ring-stone-400 transition-colors duration-200"
-						>
-							<option value="">{t('taskList.allMilestones')}</option>
-							<option value="__none">{t('taskList.noMilestone')}</option>
-							{milestoneOptions.map((milestone) => (
-								<option key={milestone} value={milestone}>
-									{getMilestoneLabel(milestone, milestoneEntities)}
-								</option>
-							))}
-						</select>
+							onChange={handleMilestoneChange}
+							className="h-10 min-w-[160px]"
+							options={[
+								{ value: "", label: t('taskList.allMilestones') },
+								{ value: "__none", label: t('taskList.noMilestone') },
+								...milestoneOptions.map((value) => ({ value, label: getMilestoneLabel(value, milestoneEntities) })),
+							]}
+						/>
 
 						<LabelFilterDropdown
 							availableLabels={mergedAvailableLabels}

@@ -20,6 +20,8 @@ import { findDirectSubtasks, findParentTask, summarizeSubtaskProgress } from "..
 import { isTerminalStatus } from "../../utils/terminal-status.ts";
 import { createUrlPath } from "../utils/urlHelpers";
 import { useLocale } from "../contexts/LocaleContext";
+import { isOpenListboxTarget } from "../contexts/ModalPopupContext";
+import ThemedSelect from "./ThemedSelect";
 
 interface Props {
   task?: Task | TaskDetail; // Optional for create mode
@@ -104,7 +106,7 @@ const isTaskChangedError = (error: unknown): boolean =>
 
 const isEditableKeyboardTarget = (target: EventTarget | null): boolean =>
   target instanceof Element &&
-  target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])') !== null;
+  target.closest('input, textarea, [role="combobox"], [contenteditable]:not([contenteditable="false"])') !== null;
 
 const preserveDirtyRefreshValue = <T,>(
   current: T,
@@ -570,6 +572,7 @@ export const TaskDetailsModal: React.FC<Props> = ({
   // Intercept Escape to cancel edit (not close modal) when in edit mode
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (isOpenListboxTarget(e.target)) return;
       if (mode === "edit" && (e.key === "Escape")) {
         e.preventDefault();
         e.stopPropagation();
@@ -1894,31 +1897,26 @@ export const TaskDetailsModal: React.FC<Props> = ({
           {/* Status */}
           <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
             <SectionHeader title={t('taskDetails.status')} />
-            <StatusSelect current={status} onChange={(val) => handleInlineMetaUpdate({ status: val })} disabled={isReadOnly || isOpenDraft} />
+            <StatusSelect current={status} onChange={(val) => handleInlineMetaUpdate({ status: val })} disabled={demoting || isReadOnly || isOpenDraft} />
           </div>
 
           {/* Type */}
           <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
             <SectionHeader title={t('taskDetails.type')} />
-            <select
+            <ThemedSelect
               aria-label={t('taskDetails.taskType')}
               aria-invalid={typeUpdateError ? true : undefined}
               aria-describedby={typeUpdateError ? "task-type-update-error" : undefined}
-              className={`w-full h-10 px-3 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-stone-500 dark:focus:ring-stone-400 focus:border-transparent transition-colors duration-200 ${isReadOnly || isTypeUpdating ? 'opacity-60 cursor-not-allowed' : ''}`}
+              className="h-10 w-full"
               value={typeSelectionValue}
-              onChange={(event) => void handleTaskTypeChange(event.target.value)}
-              disabled={isReadOnly || isTypeUpdating}
-            >
-              <option value="">{t('taskDetails.noType')}</option>
-              {!canonicalTypeSelection && taskType.trim() ? (
-                <option value={taskType}>{taskType} (not configured)</option>
-              ) : null}
-              {typeOptions.map((typeOption) => (
-                <option key={typeOption} value={typeOption}>
-                  {typeOption}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => void handleTaskTypeChange(value)}
+              disabled={demoting || isReadOnly || isTypeUpdating}
+              options={[
+                { value: "", label: t('taskDetails.noType') },
+                ...(!canonicalTypeSelection && taskType.trim() ? [{ value: taskType, label: `${taskType} (not configured)` }] : []),
+                ...typeOptions.map((value) => ({ value, label: value })),
+              ]}
+            />
             {typeUpdateError ? (
               <p id="task-type-update-error" role="alert" className="mt-2 text-xs text-red-600 dark:text-red-400">
                 {typeUpdateError}
@@ -1955,68 +1953,55 @@ export const TaskDetailsModal: React.FC<Props> = ({
           {/* Priority */}
           <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
             <SectionHeader title={t('taskDetails.priority')} />
-            <select
-              className={`w-full h-10 px-3 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-stone-500 dark:focus:ring-stone-400 focus:border-transparent transition-colors duration-200 ${isReadOnly ? 'opacity-60 cursor-not-allowed' : ''}`}
+            <ThemedSelect
+              aria-label={t('taskDetails.priority')}
+              className="h-10 w-full"
               value={priority}
-              onChange={(e) => handleInlineMetaUpdate({ priority: e.target.value as any })}
-              disabled={isReadOnly}
-            >
-              <option value="">{t('taskDetails.noPriority')}</option>
-              {priorityOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              onChange={(priority) => handleInlineMetaUpdate({ priority })}
+              disabled={demoting || isReadOnly}
+              options={[{ value: "", label: t('taskDetails.noPriority') }, ...priorityOptions]}
+            />
           </div>
 
           {/* Project */}
           {projectOptions.length > 0 && (
             <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
               <SectionHeader title={t('taskDetails.project')} />
-              <select
-                className={`w-full h-10 px-3 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-stone-500 dark:focus:ring-stone-400 focus:border-transparent transition-colors duration-200 ${isReadOnly ? 'opacity-60 cursor-not-allowed' : ''}`}
+              <ThemedSelect
+                className="h-10 w-full"
                 aria-label={t('taskDetails.taskProject')}
                 value={projectSelectionValue}
-                onChange={(e) => handleInlineMetaUpdate({ project: e.target.value })}
-                disabled={isReadOnly}
-              >
-                <option value="">{t('taskDetails.noProject')}</option>
-                {!canonicalProjectSelection && project.trim() ? (
-                  <option value={project}>{project} (not configured)</option>
-                ) : null}
-                {projectOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
+                onChange={(project) => handleInlineMetaUpdate({ project })}
+                disabled={demoting || isReadOnly}
+                options={[
+                  { value: "", label: t('taskDetails.noProject') },
+                  ...(!canonicalProjectSelection && project.trim() ? [{ value: project, label: `${project} (not configured)` }] : []),
+                  ...projectOptions.map((value) => ({ value, label: value })),
+                ]}
+              />
             </div>
           )}
 
           {/* Milestone */}
           <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
             <SectionHeader title={t('taskDetails.milestone')} />
-            <select
-              className={`w-full h-10 px-3 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-stone-500 dark:focus:ring-stone-400 focus:border-transparent transition-colors duration-200 ${isReadOnly ? 'opacity-60 cursor-not-allowed' : ''}`}
+            <ThemedSelect
+              aria-label={t('taskDetails.milestone')}
+              className="h-10 w-full"
               value={milestoneSelectionValue}
-				onChange={(e) => {
-					const value = e.target.value;
+				onChange={(value) => {
 					setMilestone(value);
 					handleInlineMetaUpdate({ milestone: value.trim().length > 0 ? value : null });
 				}}
-              disabled={isReadOnly}
-            >
-              <option value="">{t('taskDetails.noMilestone')}</option>
-              {!hasMilestoneSelection && milestoneSelectionValue ? (
-                <option value={milestoneSelectionValue}>{resolveMilestoneLabel(milestoneSelectionValue)}</option>
-              ) : null}
-              {(milestoneEntities ?? []).map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.title}
-                </option>
-              ))}
-            </select>
+              disabled={demoting || isReadOnly}
+              options={[
+                { value: "", label: t('taskDetails.noMilestone') },
+                ...(!hasMilestoneSelection && milestoneSelectionValue
+                  ? [{ value: milestoneSelectionValue, label: resolveMilestoneLabel(milestoneSelectionValue) }]
+                  : []),
+                ...(milestoneEntities ?? []).map(({ id, title }) => ({ value: id, label: title })),
+              ]}
+            />
           </div>
 
           {/* Dependencies */}
@@ -2069,6 +2054,7 @@ export const TaskDetailsModal: React.FC<Props> = ({
 };
 
 const StatusSelect: React.FC<{ current: string; onChange: (v: string) => void; disabled?: boolean }> = ({ current, onChange, disabled }) => {
+  const { t } = useLocale();
   const [statuses, setStatuses] = useState<string[]>([]);
   useEffect(() => {
     apiClient.fetchStatuses().then(setStatuses).catch(() => setStatuses(["To Do", "In Progress", "Done"]));
@@ -2077,16 +2063,14 @@ const StatusSelect: React.FC<{ current: string; onChange: (v: string) => void; d
   // which is configured. Showing the value the record actually has beats showing the first option.
   const options = !current || statuses.includes(current) ? statuses : [current, ...statuses];
   return (
-    <select
-      className={`w-full h-10 px-3 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-stone-500 dark:focus:ring-stone-400 focus:border-transparent transition-colors duration-200 ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+    <ThemedSelect
+      aria-label={t('taskDetails.status')}
+      className="h-10 w-full"
       value={current}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={onChange}
       disabled={disabled}
-    >
-      {options.map((s) => (
-        <option key={s} value={s}>{s}</option>
-      ))}
-    </select>
+      options={options.map((value) => ({ value, label: value }))}
+    />
   );
 };
 

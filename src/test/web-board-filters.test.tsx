@@ -7,6 +7,7 @@ import type { Task } from "../types/index.ts";
 import BoardPage from "../web/components/BoardPage.tsx";
 import { apiClient } from "../web/lib/api.ts";
 import { pinTimeZone } from "./pin-timezone.ts";
+import { chooseComboboxOption, comboboxLabels, getCombobox } from "./web-select-helpers";
 
 const createTask = (overrides: Partial<Task>): Task => ({
 	id: "task-1",
@@ -136,22 +137,6 @@ const renderBoardPage = (
 	return container as HTMLElement;
 };
 
-const getSelectByFirstOption = (container: HTMLElement, firstOptionText: string): HTMLSelectElement => {
-	const select = Array.from(container.querySelectorAll("select")).find(
-		(element) => element.options[0]?.textContent === firstOptionText,
-	);
-	expect(select).toBeTruthy();
-	return select as HTMLSelectElement;
-};
-
-const setSelectValue = async (select: HTMLSelectElement, value: string) => {
-	await act(async () => {
-		const valueSetter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, "value")?.set;
-		valueSetter?.call(select, value);
-		select.dispatchEvent(new window.Event("change", { bubbles: true }));
-		await Promise.resolve();
-	});
-};
 
 const clickElement = async (element: Element) => {
 	await act(async () => {
@@ -220,17 +205,17 @@ const expectBoardFiltersInHeader = (container: HTMLElement) => {
 	expect(boardFilters).toBeTruthy();
 
 	for (const ariaLabel of ["Filter board by assignee", "Filter board by type", "Filter board by priority"]) {
-		const select = container.querySelector(`select[aria-label='${ariaLabel}']`) as HTMLSelectElement | null;
+		const select = getCombobox(container, ariaLabel);
 		expect(select).toBeTruthy();
 		expect(toolbar?.contains(select)).toBe(true);
 		expect(select?.className).toContain("min-w-[140px]");
 		expect(select?.className).toContain("h-10");
 		expect(select?.className).toContain("rounded-lg");
 		expect(select?.className).toContain("border-gray-300");
-		expect(select?.className).toContain("focus:ring-stone-500");
+		expect(select.getAttribute("aria-expanded")).toBe("false");
 	}
 
-	expect(container.querySelector("select[aria-label='Filter board by label']")).toBeNull();
+	expect(container.querySelector("[role='combobox'][aria-label='Filter board by label']")).toBeNull();
 	const labelsButton = getBoardLabelsButton(container);
 	expect(toolbar?.contains(labelsButton)).toBe(true);
 	expect(labelsButton.className).toContain("min-w-[200px]");
@@ -322,7 +307,7 @@ describe("Web board filters", () => {
 		expectBoardFiltersInHeader(container);
 		expectVisibleTasks(container, ["Fix login bug", "Write docs", "Improve board", "Triage unassigned issue"]);
 
-		await setSelectValue(getSelectByFirstOption(container, "All assignees"), "alice");
+		await chooseComboboxOption(getCombobox(container, "Filter board by assignee"), "alice");
 		expect(new URLSearchParams(window.location.search).get("assignee")).toBe("alice");
 		expectVisibleTasks(container, ["Fix login bug", "Improve board"]);
 
@@ -336,11 +321,11 @@ describe("Web board filters", () => {
 		expect(getBoardLabelsButton(container).textContent).toContain("2 selected");
 		expectVisibleTasks(container, ["Fix login bug", "Improve board"]);
 
-		await setSelectValue(getSelectByFirstOption(container, "All types"), "Bug");
+		await chooseComboboxOption(getCombobox(container, "Filter board by type"), "Bug");
 		expect(new URLSearchParams(window.location.search).get("type")).toBe("Bug");
 		expectVisibleTasks(container, ["Fix login bug"]);
 
-		await setSelectValue(getSelectByFirstOption(container, "All priorities"), "high");
+		await chooseComboboxOption(getCombobox(container, "Filter board by priority"), "High");
 		expect(new URLSearchParams(window.location.search).get("priority")).toBe("high");
 		expectVisibleTasks(container, ["Fix login bug"]);
 	});
@@ -359,8 +344,8 @@ describe("Web board filters", () => {
 			availablePriorities: ["Very High", "High", "Medium", "Low", "Very Low"],
 		});
 
-		const prioritySelect = getSelectByFirstOption(container, "All priorities");
-		expect(Array.from(prioritySelect.options).map((option) => option.textContent)).toEqual([
+		const prioritySelect = getCombobox(container, "Filter board by priority");
+		expect(await comboboxLabels(prioritySelect)).toEqual([
 			"All priorities",
 			"Very High",
 			"High",
@@ -369,7 +354,7 @@ describe("Web board filters", () => {
 			"Very Low",
 		]);
 
-		await setSelectValue(prioritySelect, "very high");
+		await chooseComboboxOption(prioritySelect, "Very High");
 		const text = container.textContent ?? "";
 		expect(new URLSearchParams(window.location.search).get("priority")).toBe("very high");
 		expect(text).toContain("Escalate production incident");
@@ -390,13 +375,13 @@ describe("Web board filters", () => {
 
 		await waitFor(() => new URLSearchParams(window.location.search).get("type") === "Customer Request");
 
-		const typeSelect = getSelectByFirstOption(container, "All types");
-		expect(Array.from(typeSelect.options).map((option) => option.textContent)).toEqual([
+		const typeSelect = getCombobox(container, "Filter board by type");
+		expect(await comboboxLabels(typeSelect)).toEqual([
 			"All types",
 			"Bug",
 			"Customer Request",
 		]);
-		expect(typeSelect.value).toBe("Customer Request");
+		expect(typeSelect.textContent).toBe("Customer Request");
 		expect(container.textContent).toContain("Interview customers");
 		expect(container.textContent).not.toContain("Fix checkout");
 		expect(container.textContent).not.toContain("Unclassified follow-up");
@@ -409,7 +394,7 @@ describe("Web board filters", () => {
 
 		await waitFor(() => new URLSearchParams(window.location.search).get("type") === null);
 
-		expect(getSelectByFirstOption(container, "All types").value).toBe("");
+		expect(getCombobox(container, "Filter board by type").textContent).toBe("All types");
 		expectVisibleTasks(container, ["Fix login bug", "Write docs", "Improve board", "Triage unassigned issue"]);
 	});
 
@@ -429,7 +414,7 @@ describe("Web board filters", () => {
 
 		await waitFor(() => new URLSearchParams(window.location.search).get("priority") === "very high");
 
-		expect(getSelectByFirstOption(container, "All priorities").value).toBe("very high");
+		expect(getCombobox(container, "Filter board by priority").textContent).toBe("Very High");
 		expect(container.textContent).toContain("Escalate production incident");
 		expect(container.textContent).not.toContain("Fix login bug");
 	});
@@ -439,7 +424,7 @@ describe("Web board filters", () => {
 
 		await waitFor(() => new URLSearchParams(window.location.search).get("priority") === null);
 
-		expect(getSelectByFirstOption(container, "All priorities").value).toBe("");
+		expect(getCombobox(container, "Filter board by priority").textContent).toBe("All priorities");
 		expectVisibleTasks(container, ["Fix login bug", "Write docs", "Improve board", "Triage unassigned issue"]);
 	});
 
@@ -463,10 +448,10 @@ describe("Web board filters", () => {
 		);
 		await waitFor(() => new URLSearchParams(window.location.search).get("type") === "Bug");
 
-		expect(getSelectByFirstOption(container, "All assignees").value).toBe("alice");
+		expect(getCombobox(container, "Filter board by assignee").textContent).toBe("alice");
 		expect(getBoardLabelsButton(container).textContent).toContain("bug");
-		expect(getSelectByFirstOption(container, "All priorities").value).toBe("high");
-		expect(getSelectByFirstOption(container, "All types").value).toBe("Bug");
+		expect(getCombobox(container, "Filter board by priority").textContent).toBe("High");
+		expect(getCombobox(container, "Filter board by type").textContent).toBe("Bug");
 		expectVisibleTasks(container, ["Fix login bug"]);
 
 		const clearButton = Array.from(container.querySelectorAll("button")).find((button) =>
@@ -490,7 +475,7 @@ describe("Web board filters", () => {
 		expect(container.textContent).toContain("m-1");
 		expect(container.textContent).toContain("m-2");
 
-		await setSelectValue(getSelectByFirstOption(container, "All assignees"), "alice");
+		await chooseComboboxOption(getCombobox(container, "Filter board by assignee"), "alice");
 
 		const text = container.textContent ?? "";
 		expect(text).toContain("Fix login bug");
