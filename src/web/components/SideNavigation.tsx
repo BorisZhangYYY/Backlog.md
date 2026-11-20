@@ -18,6 +18,13 @@ import { parseSearchCommandQuery } from '../utils/search-command-query';
 import { buildDocsTree, type DocsTreeNode } from '../lib/docs-tree';
 import { useLocale, type Translate } from '../contexts/LocaleContext';
 
+// Below this width the expanded sidebar (320px) would leave almost nothing for the page content,
+// so the sidebar starts collapsed and collapses again whenever the viewport gets that narrow.
+const NARROW_SIDEBAR_QUERY = '(max-width: 767px)';
+
+const matchesNarrowSidebarQuery = (): boolean =>
+	typeof window !== 'undefined' && typeof window.matchMedia === 'function' ? window.matchMedia(NARROW_SIDEBAR_QUERY).matches : false;
+
 // Utility functions for ID transformations
 const stripIdPrefix = (id: string): string => {
 	// Remove any prefix pattern: letters followed by dash (task-, doc-, decision-, JIRA-, etc.)
@@ -276,6 +283,7 @@ const SideNavigation = memo(function SideNavigation({
 }: SideNavigationProps) {
 	const { t, tNode } = useLocale();
 	const [isCollapsed, setIsCollapsed] = useState(() => {
+		if (matchesNarrowSidebarQuery()) return true;
 		const saved = localStorage.getItem('sideNavCollapsed');
 		return saved ? JSON.parse(saved) : false;
 	});
@@ -323,8 +331,28 @@ const SideNavigation = memo(function SideNavigation({
 	}, [navigate]);
 
 	useEffect(() => {
+		if (matchesNarrowSidebarQuery()) return;
 		localStorage.setItem('sideNavCollapsed', JSON.stringify(isCollapsed));
 	}, [isCollapsed]);
+
+	// The stored preference describes what the user wants on a wide viewport. Getting narrower than
+	// the breakpoint collapses the sidebar so the page keeps usable width, without rewriting that
+	// preference; the user can still expand it by hand.
+	useEffect(() => {
+		if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+		const query = window.matchMedia(NARROW_SIDEBAR_QUERY);
+		const handleChange = (event: MediaQueryListEvent) => {
+			if (event.matches) {
+				setIsCollapsed(true);
+				return;
+			}
+			// Restore the wide-viewport preference instead of keeping the automatic collapse.
+			const saved = localStorage.getItem('sideNavCollapsed');
+			setIsCollapsed(saved ? JSON.parse(saved) : false);
+		};
+		query.addEventListener('change', handleChange);
+		return () => query.removeEventListener('change', handleChange);
+	}, []);
 
 	// Fetch version on mount
 	useEffect(() => {

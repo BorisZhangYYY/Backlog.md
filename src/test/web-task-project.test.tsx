@@ -11,6 +11,7 @@ import { TaskDetailsModal } from "../web/components/TaskDetailsModal.tsx";
 import { ThemeProvider } from "../web/contexts/ThemeContext.tsx";
 import { apiClient, type TaskUpdateRequest } from "../web/lib/api.ts";
 import { setNativeInputValue } from "./react-dom-input.ts";
+import { chooseComboboxOption, comboboxLabels, getCombobox } from "./web-select-helpers";
 
 const createTask = (overrides: Partial<Task> = {}): Task => ({
 	id: "TASK-1",
@@ -75,14 +76,6 @@ async function setInputValue(input: HTMLInputElement, value: string): Promise<vo
 	});
 }
 
-async function setSelectValue(select: HTMLSelectElement, value: string): Promise<void> {
-	await act(async () => {
-		const valueSetter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, "value")?.set;
-		valueSetter?.call(select, value);
-		select.dispatchEvent(new window.Event("change", { bubbles: true }));
-		await Promise.resolve();
-	});
-}
 
 const WAIT_FOR_TIMEOUT_MS = 4000;
 
@@ -98,13 +91,6 @@ async function waitFor(predicate: () => boolean): Promise<void> {
 	}
 }
 
-const getSelectByFirstOption = (container: HTMLElement, firstOptionText: string): HTMLSelectElement => {
-	const select = Array.from(container.querySelectorAll("select")).find(
-		(element) => element.options[0]?.textContent === firstOptionText,
-	);
-	expect(select).toBeTruthy();
-	return select as HTMLSelectElement;
-};
 
 afterEach(() => {
 	if (activeRoot) {
@@ -156,10 +142,7 @@ describe("Web task project UI", () => {
 			await Promise.resolve();
 		});
 
-		const projectSelect = Array.from(container.querySelectorAll("select")).find(
-			(element) => element.options[0]?.textContent === "No Project",
-		);
-		expect(projectSelect).toBeUndefined();
+		expect(container.querySelector("[role='combobox'][aria-label='Task project']")).toBeNull();
 	});
 
 	it("shows a project select with a No Project default and immediately saves changes", async () => {
@@ -181,15 +164,15 @@ describe("Web task project UI", () => {
 			await Promise.resolve();
 		});
 
-		const projectSelect = getSelectByFirstOption(container, "No Project");
-		expect(Array.from(projectSelect.options).map((option) => option.textContent)).toEqual([
+		const projectSelect = getCombobox(container, "Task project");
+		expect(await comboboxLabels(projectSelect)).toEqual([
 			"No Project",
 			"Web",
 			"API",
 		]);
-		expect(projectSelect.value).toBe("");
+		expect(projectSelect.textContent).toBe("No Project");
 
-		await setSelectValue(projectSelect, "Web");
+		await chooseComboboxOption(projectSelect, "Web");
 		await waitFor(() => receivedUpdates.length === 1);
 		expect(receivedUpdates[0]).toEqual({ project: "Web" });
 	});
@@ -256,11 +239,11 @@ describe("Web task project UI", () => {
 			await Promise.resolve();
 		});
 
-		const projectSelect = getSelectByFirstOption(container, "No Project");
+		const projectSelect = getCombobox(container, "Task project");
 		const titleInput = container.querySelector("input[placeholder='Enter task title']") as HTMLInputElement | null;
 		expect(titleInput).toBeTruthy();
 		await setInputValue(titleInput as HTMLInputElement, "API onboarding");
-		await setSelectValue(projectSelect, "API");
+		await chooseComboboxOption(projectSelect, "API");
 
 		const createButton = Array.from(container.querySelectorAll("button")).find(
 			(button) => button.textContent?.trim() === "Create",
@@ -310,23 +293,20 @@ describe("Web board project filter", () => {
 
 	it("omits the project filter select when no projects are configured", () => {
 		const container = renderBoardPage(undefined, undefined);
-		expect(container.querySelector("select[aria-label='Filter board by project']")).toBeNull();
+		expect(container.querySelector("[role='combobox'][aria-label='Filter board by project']")).toBeNull();
 	});
 
 	it("filters board cards by project and updates the URL", async () => {
 		const container = renderBoardPage(undefined, ["Web", "API"]);
 
-		const projectSelect = container.querySelector(
-			"select[aria-label='Filter board by project']",
-		) as HTMLSelectElement | null;
-		expect(projectSelect).toBeTruthy();
-		expect(Array.from(projectSelect?.options ?? []).map((option) => option.textContent)).toEqual([
+		const projectSelect = getCombobox(container, "Filter board by project");
+		expect(await comboboxLabels(projectSelect)).toEqual([
 			"All projects",
 			"Web",
 			"API",
 		]);
 
-		await setSelectValue(projectSelect as HTMLSelectElement, "Web");
+		await chooseComboboxOption(projectSelect, "Web");
 		expect(new URLSearchParams(window.location.search).get("project")).toBe("Web");
 		const text = container.textContent ?? "";
 		expect(text).toContain("Web task");
@@ -339,10 +319,7 @@ describe("Web board project filter", () => {
 
 		await waitFor(() => new URLSearchParams(window.location.search).get("project") === null);
 
-		const projectSelect = container.querySelector(
-			"select[aria-label='Filter board by project']",
-		) as HTMLSelectElement | null;
-		expect(projectSelect?.value).toBe("");
+		expect(getCombobox(container, "Filter board by project").textContent).toBe("All projects");
 		const text = container.textContent ?? "";
 		expect(text).toContain("Web task");
 		expect(text).toContain("API task");

@@ -8,6 +8,7 @@ import MilestoneTaskRow from "./MilestoneTaskRow";
 import Modal from "./Modal";
 import StoredDate from "./StoredDate";
 import { useLocale } from '../contexts/LocaleContext';
+import ThemedSelect from "./ThemedSelect";
 
 type RemoveTaskHandling = "clear" | "reassign";
 
@@ -1010,41 +1011,41 @@ const MilestonesPage: React.FC<MilestonesPageProps> = ({
 								</span>
 							</span>
 						</label>
-						<label className="flex cursor-pointer items-start gap-3 rounded-md border border-gray-200 dark:border-gray-700 px-3 py-3 text-sm text-gray-700 dark:text-gray-200">
-							<input
-								type="radio"
-								name="remove-milestone-task-handling"
-								value="reassign"
-								checked={removeTaskHandling === "reassign"}
-								disabled={!canReassignRemovedMilestone}
-								onChange={() => {
-									setRemoveTaskHandling("reassign");
-									setModalError(null);
-								}}
-								className="mt-0.5"
-							/>
-							<span className="flex-1">
-								<span className="block font-medium text-gray-900 dark:text-gray-100">{t('milestones.reassign')}</span>
-								<span className="block text-xs text-gray-500 dark:text-gray-400">
-									Move matching local tasks to another milestone.
+						<div className="rounded-md border border-gray-200 px-3 py-3 text-sm text-gray-700 dark:border-gray-700 dark:text-gray-200">
+							<label className="flex cursor-pointer items-start gap-3">
+								<input
+									type="radio"
+									name="remove-milestone-task-handling"
+									value="reassign"
+									checked={removeTaskHandling === "reassign"}
+									disabled={!canReassignRemovedMilestone}
+									onChange={() => {
+										setRemoveTaskHandling("reassign");
+										setModalError(null);
+									}}
+									className="mt-0.5"
+								/>
+								<span>
+									<span className="block font-medium text-gray-900 dark:text-gray-100">{t('milestones.reassign')}</span>
+									<span className="block text-xs text-gray-500 dark:text-gray-400">
+										Move matching local tasks to another milestone.
+									</span>
 								</span>
-								<select
+							</label>
+							<div className="mt-2 pl-6">
+								<ThemedSelect
+									aria-label={t('taskDetails.milestone')}
 									value={removeReassignTo}
-									onChange={(event) => {
-										setRemoveReassignTo(event.target.value);
+									onChange={(value) => {
+										setRemoveReassignTo(value);
 										setModalError(null);
 									}}
 									disabled={removeTaskHandling !== "reassign" || !canReassignRemovedMilestone}
-									className="mt-2 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 disabled:opacity-60"
-								>
-									{removeReassignOptions.map((milestone) => (
-										<option key={milestone.id} value={milestone.id}>
-											{milestone.title}
-										</option>
-									))}
-								</select>
-							</span>
-						</label>
+									className="h-10 w-full"
+									options={removeReassignOptions.map(({ id, title }) => ({ value: id, label: title }))}
+								/>
+							</div>
+						</div>
 					</div>
 					{modalError && <p className="text-xs text-red-600 dark:text-red-400">{modalError}</p>}
 					<div className="flex justify-end gap-2">

@@ -15,6 +15,8 @@ import { BoardLoadingSkeleton } from './BoardLoadingSkeleton';
 import CleanupModal from './CleanupModal';
 import LabelFilterDropdown from './LabelFilterDropdown';
 import { SuccessToast } from './SuccessToast';
+import ThemedSelect from "./ThemedSelect";
+import { isOpenListboxTarget } from "../contexts/ModalPopupContext";
 
 interface BoardProps {
   onEditTask: (task: Task) => void;
@@ -47,8 +49,7 @@ interface BoardProps {
   dateFormat?: string;
 }
 
-const BOARD_FILTER_SELECT_CLASS =
-  'min-w-[140px] h-10 py-2 px-3 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-stone-500 dark:focus:ring-stone-400 transition-colors duration-200';
+const BOARD_FILTER_SELECT_CLASS = "h-10 min-w-[140px]";
 
 const BOARD_FILTER_BUTTON_CLASS =
   'h-10 py-2 px-3 text-sm border border-gray-300 dark:border-gray-600 rounded-lg whitespace-nowrap transition-colors duration-200 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700';
@@ -340,7 +341,7 @@ const Board: React.FC<BoardProps> = ({
   useEffect(() => {
     if (selectedTaskIds.length === 0) return;
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') clearSelection();
+      if (event.key === 'Escape' && !event.defaultPrevented && !isOpenListboxTarget(event.target)) clearSelection();
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
@@ -686,19 +687,13 @@ const Board: React.FC<BoardProps> = ({
             <label className="sr-only" htmlFor="batch-move-status">
               {t('board.moveSelectedTasksTo')}
             </label>
-            <select
+            <ThemedSelect
               id="batch-move-status"
               className={BOARD_FILTER_SELECT_CLASS}
               value={batchMoveStatus}
-              onChange={(event) => setBatchMoveStatus(event.target.value)}
-            >
-              <option value="">{t('board.moveTo')}</option>
-              {statuses.map((status) => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
-              ))}
-            </select>
+              onChange={setBatchMoveStatus}
+              options={[{ value: "", label: t('board.moveTo') }, ...statuses.map((value) => ({ value, label: value }))]}
+            />
             <button
               type="button"
               className={BOARD_FILTER_BUTTON_CLASS}
@@ -743,18 +738,17 @@ const Board: React.FC<BoardProps> = ({
             </div>
             {onFiltersChange && (
               <div className="flex flex-wrap items-center gap-3" aria-label={t('board.filters')}>
-                <select
+                <ThemedSelect
                   aria-label={t('board.filterByAssignee')}
                   value={filterAssignee}
-                  onChange={e => onFiltersChange({ assignee: e.target.value, labels: normalizedFilterLabels, priority: filterPriority, taskType: filterType, project: filterProject })}
+                  onChange={assignee => onFiltersChange({ assignee, labels: normalizedFilterLabels, priority: filterPriority, taskType: filterType, project: filterProject })}
                   className={BOARD_FILTER_SELECT_CLASS}
-                >
-                  <option value="">{t('board.allAssignees')}</option>
-                  <option value="__unassigned__">{t('common.unassigned')}</option>
-                  {uniqueAssignees.map(a => (
-                    <option key={a} value={a}>{a}</option>
-                  ))}
-                </select>
+                  options={[
+                    { value: "", label: t('board.allAssignees') },
+                    { value: "__unassigned__", label: t('common.unassigned') },
+                    ...uniqueAssignees.map((value) => ({ value, label: value })),
+                  ]}
+                />
 
                 <LabelFilterDropdown
                   availableLabels={uniqueLabels}
@@ -764,42 +758,31 @@ const Board: React.FC<BoardProps> = ({
                   className="min-w-[200px]"
                 />
 
-                <select
+                <ThemedSelect
                   aria-label={t('board.filterByType')}
                   value={filterType}
-                  onChange={e => onFiltersChange({ assignee: filterAssignee, labels: normalizedFilterLabels, priority: filterPriority, taskType: e.target.value, project: filterProject })}
+                  onChange={taskType => onFiltersChange({ assignee: filterAssignee, labels: normalizedFilterLabels, priority: filterPriority, taskType, project: filterProject })}
                   className={BOARD_FILTER_SELECT_CLASS}
-                >
-                  <option value="">{t('board.allTypes')}</option>
-                  {typeOptions.map(type => (
-                    <option key={type} value={type}>{type}</option>
-                  ))}
-                </select>
+                  options={[{ value: "", label: t('board.allTypes') }, ...typeOptions.map((value) => ({ value, label: value }))]}
+                />
 
                 {projectOptions.length > 0 && (
-                  <select
+                  <ThemedSelect
                     aria-label={t('board.filterByProject')}
                     value={filterProject}
-                    onChange={e => onFiltersChange({ assignee: filterAssignee, labels: normalizedFilterLabels, priority: filterPriority, taskType: filterType, project: e.target.value })}
+                    onChange={project => onFiltersChange({ assignee: filterAssignee, labels: normalizedFilterLabels, priority: filterPriority, taskType: filterType, project })}
                     className={BOARD_FILTER_SELECT_CLASS}
-                  >
-                    <option value="">{t('board.allProjects')}</option>
-                    {projectOptions.map(project => (
-                      <option key={project} value={project}>{project}</option>
-                    ))}
-                  </select>
+                    options={[{ value: "", label: t('board.allProjects') }, ...projectOptions.map((value) => ({ value, label: value }))]}
+                  />
                 )}
 
-                <select
+                <ThemedSelect
                   aria-label={t('board.filterByPriority')}
                   value={filterPriority}
-                  onChange={e => onFiltersChange({ assignee: filterAssignee, labels: normalizedFilterLabels, priority: e.target.value, taskType: filterType, project: filterProject })}
+                  onChange={priority => onFiltersChange({ assignee: filterAssignee, labels: normalizedFilterLabels, priority, taskType: filterType, project: filterProject })}
                   className={BOARD_FILTER_SELECT_CLASS}
-                >
-                  {priorityOptions.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
+                  options={priorityOptions}
+                />
 
                 {hasActiveFilters && (
                   <button

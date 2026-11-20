@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { useLocale } from '../contexts/LocaleContext';
+import { isOpenListboxTarget, ModalPopupContainer } from "../contexts/ModalPopupContext";
 
 interface ModalProps {
 	isOpen: boolean;
@@ -26,6 +27,7 @@ const Modal: React.FC<ModalProps> = ({
 }) => {
 	const { t } = useLocale();
 	const dialogRef = useRef<HTMLDivElement | null>(null);
+	const popupRef = useRef<HTMLDivElement | null>(null);
 	const onCloseRef = useRef(onClose);
 	const disableEscapeCloseRef = useRef(disableEscapeClose);
 	const initialFocusRefRef = useRef(initialFocusRef);
@@ -49,6 +51,7 @@ const Modal: React.FC<ModalProps> = ({
 		const previousOverflow = ownerDocument.body.style.overflow;
 		const handleKeyDown = (event: KeyboardEvent) => {
 			if (event.key === "Escape") {
+				if (isOpenListboxTarget(event.target)) return;
 				event.preventDefault();
 				event.stopPropagation();
 				if (!disableEscapeCloseRef.current) {
@@ -71,10 +74,8 @@ const Modal: React.FC<ModalProps> = ({
 			}
 
 			const focusable = Array.from(
-				dialog.querySelectorAll<HTMLElement>(
-					'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-				),
-			);
+				dialog.querySelectorAll<HTMLElement>('a[href], button, input:not([type="hidden"]), select, textarea, [tabindex]'),
+			).filter((element) => element.tabIndex >= 0 && !element.matches(":disabled") && !popupRef.current?.contains(element));
 			const first = focusable[0];
 			const last = focusable.at(-1);
 			if (!first || !last) {
@@ -143,7 +144,11 @@ const Modal: React.FC<ModalProps> = ({
 					</div>
 					{headerNotice && <div className="w-full">{headerNotice}</div>}
 				</div>
-				<div className="px-6 pt-4 pb-6">{children}</div>
+				<div className="px-6 pt-4 pb-6">
+					<ModalPopupContainer.Provider value={popupRef}>{children}</ModalPopupContainer.Provider>
+				</div>
+				{/* Keep portaled listboxes inside the dialog for focus and accessibility. */}
+				<div ref={popupRef} />
 			</div>
 		</div>
 	);

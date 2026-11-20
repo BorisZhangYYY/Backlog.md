@@ -1,3 +1,4 @@
+import { chooseComboboxOption, comboboxLabels, getCombobox } from "./web-select-helpers";
 import { afterEach, describe, expect, it } from "bun:test";
 import { JSDOM } from "jsdom";
 import { act } from "react";
@@ -76,14 +77,6 @@ async function setInputValue(input: HTMLInputElement, value: string): Promise<vo
 	});
 }
 
-async function setSelectValue(select: HTMLSelectElement, value: string): Promise<void> {
-	await act(async () => {
-		const valueSetter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, "value")?.set;
-		valueSetter?.call(select, value);
-		select.dispatchEvent(new window.Event("change", { bubbles: true }));
-		await Promise.resolve();
-	});
-}
 
 // A fixed number of event-loop turns is a budget of milliseconds on a fast machine and the
 // same milliseconds on a slow one, so the wait is bounded by wall clock instead, and reports
@@ -230,10 +223,9 @@ describe("Web task type UI", () => {
 			await Promise.resolve();
 		});
 
-		const typeSelect = container.querySelector("select[aria-label='Task type']") as HTMLSelectElement | null;
-		expect(typeSelect).toBeTruthy();
-		expect(typeSelect?.value).toBe("");
-		expect(Array.from(typeSelect?.options ?? []).map((option) => option.textContent)).toEqual([
+		const typeSelect = getCombobox(container, "Task type");
+		expect(typeSelect.textContent).toBe("No type");
+		expect(await comboboxLabels(typeSelect)).toEqual([
 			"No type",
 			"Bug",
 			"Customer Request",
@@ -245,7 +237,7 @@ describe("Web task type UI", () => {
 		expect(dueDateInput).toBeTruthy();
 		await setInputValue(titleInput as HTMLInputElement, "Customer interview");
 		await setInputValue(dueDateInput as HTMLInputElement, "2026-08-11");
-		await setSelectValue(typeSelect as HTMLSelectElement, "Customer Request");
+		await chooseComboboxOption(typeSelect, "Customer Request");
 
 		const createButton = Array.from(container.querySelectorAll("button")).find(
 			(button) => button.textContent?.trim() === "Create",
@@ -289,10 +281,10 @@ describe("Web task type UI", () => {
 			await Promise.resolve();
 		});
 
-		const typeSelect = container.querySelector("select[aria-label='Task type']") as HTMLSelectElement;
+		const typeSelect = getCombobox(container, "Task type");
 		const titleInput = container.querySelector("input[placeholder='Enter task title']") as HTMLInputElement;
 		await setInputValue(titleInput, "Stale configured type");
-		await setSelectValue(typeSelect, "Feature");
+		await chooseComboboxOption(typeSelect, "Feature");
 		const createButton = Array.from(container.querySelectorAll("button")).find(
 			(button) => button.textContent?.trim() === "Create",
 		);
@@ -302,8 +294,8 @@ describe("Web task type UI", () => {
 		});
 		await waitFor(() => container.querySelector("[role='alert']")?.textContent === errorMessage);
 
-		expect(typeSelect.value).toBe("Feature");
 		expect(closeCalls).toBe(0);
+		expect(typeSelect.textContent).toBe("Feature");
 	});
 
 	it("updates and clears type while preserving a removed value across a config refresh", async () => {
@@ -331,9 +323,9 @@ describe("Web task type UI", () => {
 			await Promise.resolve();
 		});
 
-		let typeSelect = container.querySelector("select[aria-label='Task type']") as HTMLSelectElement;
-		expect(typeSelect.value).toBe("Legacy Type");
-		expect(Array.from(typeSelect.options).map((option) => option.textContent)).toEqual([
+		let typeSelect = getCombobox(container, "Task type");
+		expect(typeSelect.textContent).toBe("Legacy Type");
+		expect(await comboboxLabels(typeSelect)).toEqual([
 			"No type",
 			"Legacy Type",
 			"Bug",
@@ -354,25 +346,25 @@ describe("Web task type UI", () => {
 			await Promise.resolve();
 		});
 
-		typeSelect = container.querySelector("select[aria-label='Task type']") as HTMLSelectElement;
-		expect(typeSelect.value).toBe("Legacy Type");
-		expect(Array.from(typeSelect.options).map((option) => option.textContent)).toEqual([
+		typeSelect = getCombobox(container, "Task type");
+		expect(typeSelect.textContent).toBe("Legacy Type (not configured)");
+		expect(await comboboxLabels(typeSelect)).toEqual([
 			"No type",
 			"Legacy Type (not configured)",
 			"Bug",
 			"Feature",
 		]);
 
-		await setSelectValue(typeSelect, "Feature");
+		await chooseComboboxOption(typeSelect, "Feature");
 		await waitFor(() => receivedUpdates.length === 1);
 		expect(receivedUpdates[0]).toEqual({ type: "Feature" });
-		expect(typeSelect.value).toBe("Feature");
+		expect(typeSelect.textContent).toBe("Feature");
 
-		await setSelectValue(typeSelect, "");
+		await chooseComboboxOption(typeSelect, "No type");
 		await waitFor(() => receivedUpdates.length === 2);
 
 		expect(receivedUpdates[1]).toEqual({ type: "" });
-		expect(typeSelect.value).toBe("");
+		expect(typeSelect.textContent).toBe("No type");
 	});
 
 	it("rolls back a rejected edit type and exposes the server error accessibly", async () => {
@@ -404,13 +396,13 @@ describe("Web task type UI", () => {
 			await Promise.resolve();
 		});
 
-		const typeSelect = container.querySelector("select[aria-label='Task type']") as HTMLSelectElement;
-		await setSelectValue(typeSelect, "Feature");
+		const typeSelect = getCombobox(container, "Task type");
+		await chooseComboboxOption(typeSelect, "Feature");
 		await waitFor(() => container.querySelector("#task-type-update-error")?.textContent?.trim() === errorMessage);
 
 		expect(updateCalls).toBe(1);
 		expect(savedCalls).toBe(0);
-		expect(typeSelect.value).toBe("Bug");
+		expect(typeSelect.textContent).toBe("Bug");
 		expect(typeSelect.disabled).toBe(false);
 		expect(typeSelect.getAttribute("aria-invalid")).toBe("true");
 		expect(typeSelect.getAttribute("aria-describedby")).toBe("task-type-update-error");
@@ -456,17 +448,18 @@ describe("Web task type UI", () => {
 
 		activeRoot = createRoot(container);
 		await renderModal(task, ["Bug", "feature"], ["To Do", "Done"]);
-		let typeSelect = container.querySelector("select[aria-label='Task type']") as HTMLSelectElement;
-		await setSelectValue(typeSelect, "feature");
+		let typeSelect = getCombobox(container, "Task type");
+		await chooseComboboxOption(typeSelect, "feature");
 		await waitFor(() => updateCalls === 1 && typeSelect.disabled);
 
 		const refreshedTask = { ...task, description: "Refreshed while the type write is pending" };
 		await renderModal(refreshedTask, ["Bug", "Feature"], ["Backlog", "To Do", "Done"]);
-		typeSelect = container.querySelector("select[aria-label='Task type']") as HTMLSelectElement;
+		typeSelect = getCombobox(container, "Task type");
 		expect(typeSelect.disabled).toBe(true);
-		expect(typeSelect.value).toBe("Feature");
+		expect(typeSelect.textContent).toBe("Feature");
 
-		await setSelectValue(typeSelect, "Bug");
+		await act(async () => { typeSelect.click(); });
+		expect(typeSelect.getAttribute("aria-expanded")).toBe("false");
 		expect(updateCalls).toBe(1);
 		expect(receivedUpdate).toEqual({ type: "feature" });
 
@@ -475,7 +468,7 @@ describe("Web task type UI", () => {
 			await updateResult;
 			await Promise.resolve();
 		});
-		await waitFor(() => !typeSelect.disabled && typeSelect.value === "Feature");
+		await waitFor(() => !typeSelect.disabled && typeSelect.textContent === "Feature");
 
 		expect(updateCalls).toBe(1);
 		expect(savedCalls).toBe(1);

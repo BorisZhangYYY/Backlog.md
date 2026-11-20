@@ -99,20 +99,27 @@ describe("LocaleContext", () => {
 });
 
 describe("LanguageSwitcher", () => {
-	it("offers both languages and reports the chosen one", async () => {
+	it("opens an in-page list of languages and reports the chosen one", async () => {
 		setupDom();
 		const container = render(<LanguageSwitcher />);
 
-		const select = container.querySelector("select") as HTMLSelectElement;
-		expect(select).toBeTruthy();
-		expect(Array.from(select.options).map((option) => option.value)).toEqual(["en", "zh-CN"]);
-
+		const trigger = container.querySelector<HTMLElement>('[role="combobox"]');
+		expect(trigger?.getAttribute("aria-expanded")).toBe("false");
 		await act(async () => {
-			select.value = "zh-CN";
-			select.dispatchEvent(new window.Event("change", { bubbles: true }));
-			await Promise.resolve();
+			trigger!.focus();
+			trigger!.dispatchEvent(new window.KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
 		});
 
+		expect(trigger?.getAttribute("aria-expanded")).toBe("true");
+		const options = Array.from(document.querySelectorAll<HTMLElement>('[role="listbox"] [role="option"]'));
+		expect(options).toHaveLength(2);
+		expect(options[1]?.textContent).toBe("简体中文");
+		await act(async () => {
+			options[1]!.dispatchEvent(new window.PointerEvent("pointerdown", { pointerType: "mouse", bubbles: true }));
+			options[1]!.click();
+		});
+
+		expect(trigger?.getAttribute("aria-expanded")).toBe("false");
 		expect(localStorage.getItem("backlog-locale")).toBe("zh-CN");
 		expect(document.documentElement.lang).toBe("zh-CN");
 	});
