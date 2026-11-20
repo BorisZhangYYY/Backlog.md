@@ -426,7 +426,7 @@ const installFetchMock = () => {
 	}) as typeof fetch;
 };
 
-const setupDom = (path: string) => {
+const setupDom = (path: string, options: { narrowViewport?: boolean; storedSidebarCollapsed?: boolean } = {}) => {
 	activeDom = new JSDOM("<!doctype html><html><body><div id='root'></div></body></html>", {
 		url: `http://localhost${path}`,
 		pretendToBeVisual: true,
@@ -435,6 +435,9 @@ const setupDom = (path: string) => {
 	globalThis.document = activeDom.window.document;
 	globalThis.navigator = activeDom.window.navigator;
 	globalThis.localStorage = activeDom.window.localStorage;
+	if (options.storedSidebarCollapsed !== undefined) {
+		activeDom.window.localStorage.setItem("sideNavCollapsed", JSON.stringify(options.storedSidebarCollapsed));
+	}
 	globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
 	globalThis.ResizeObserver = FakeResizeObserver as unknown as typeof ResizeObserver;
 	globalThis.Event = activeDom.window.Event;
@@ -444,17 +447,17 @@ const setupDom = (path: string) => {
 	globalThis.Node = activeDom.window.Node;
 	(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-	window.matchMedia = () =>
+	window.matchMedia = ((query: string) =>
 		({
-			matches: false,
-			media: "",
+			matches: options.narrowViewport === true && query === '(max-width: 767px)',
+			media: query,
 			onchange: null,
 			addListener: () => {},
 			removeListener: () => {},
 			addEventListener: () => {},
 			removeEventListener: () => {},
 			dispatchEvent: () => false,
-		}) as MediaQueryList;
+		}) as MediaQueryList) as typeof window.matchMedia;
 	window.scrollTo = () => {};
 	window.confirm = () => true;
 
@@ -474,10 +477,12 @@ const renderApp = async (
 		afterInitialStatus?: (container: HTMLElement) => void | Promise<void>;
 		beforeInitialStatus?: (container: HTMLElement) => void | Promise<void>;
 		manualDuplicatePlan?: boolean;
+		narrowViewport?: boolean;
+		storedSidebarCollapsed?: boolean;
 		operationRef?: { current?: FetchOperation };
 	} = {},
 ): Promise<HTMLElement> => {
-	setupDom(path);
+	setupDom(path, { narrowViewport: options.narrowViewport, storedSidebarCollapsed: options.storedSidebarCollapsed });
 	const requestedUrl = new URL(path, window.location.origin);
 	const pathname = requestedUrl.pathname;
 	const routeMatch = pathname.match(/^\/(?:tasks|board)\/([^/]+)(?:\/[^/]+)?$/);
@@ -1281,6 +1286,18 @@ describe("task detail routes", () => {
 			"close button to return to list",
 		);
 		expect(ownerDocument.activeElement).toBe(title as HTMLButtonElement);
+	});
+
+	it("collapses the sidebar on a narrow viewport without overwriting the stored preference", async () => {
+		const container = await renderApp("/tasks", { narrowViewport: true, storedSidebarCollapsed: false });
+
+		expect(container.querySelector("button[aria-label='Expand sidebar']")).toBeTruthy();
+		expect(container.querySelector("button[aria-label='Collapse sidebar']")).toBeNull();
+		expect(localStorage.getItem("sideNavCollapsed")).toBe("false");
+
+		await click(container.querySelector("button[aria-label='Expand sidebar']") as HTMLButtonElement);
+		expect(container.querySelector("button[aria-label='Collapse sidebar']")).toBeTruthy();
+		expect(localStorage.getItem("sideNavCollapsed")).toBe("false");
 	});
 
 	for (const scenario of [
