@@ -1,7 +1,7 @@
 const { execFileSync } = require("node:child_process");
 
-function getPackageName(platform = process.platform, arch = process.arch) {
-	return `backlog.md-${platform === "win32" ? "windows" : platform}-${arch}`;
+function getPackageName(platform = process.platform, arch = process.arch, packageName = "backlog.md") {
+	return `${packageName}-${platform === "win32" ? "windows" : platform}-${arch}`;
 }
 
 /**
@@ -14,12 +14,16 @@ function getCandidatePackageNames(
 	platform = process.platform,
 	arch = process.arch,
 	rosetta = isRosettaTranslated(platform),
+	packageName = "backlog.md",
 ) {
 	if (platform !== "darwin" || (arch !== "arm64" && arch !== "x64")) {
-		return [getPackageName(platform, arch)];
+		return [getPackageName(platform, arch, packageName)];
 	}
 	const primary = rosetta ? "arm64" : arch;
-	return [getPackageName(platform, primary), getPackageName(platform, primary === "arm64" ? "x64" : "arm64")];
+	return [
+		getPackageName(platform, primary, packageName),
+		getPackageName(platform, primary === "arm64" ? "x64" : "arm64", packageName),
+	];
 }
 
 /**
@@ -41,12 +45,17 @@ function isRosettaTranslated(platform = process.platform, exec = execFileSync) {
 	}
 }
 
-function resolveBinaryPath(platform = process.platform, arch = process.arch, resolver = require.resolve) {
+function resolveBinaryPath(
+	platform = process.platform,
+	arch = process.arch,
+	resolver = require.resolve,
+	packageName = "backlog.md",
+) {
 	const binary = `backlog${platform === "win32" ? ".exe" : ""}`;
 	let firstError;
-	for (const packageName of getCandidatePackageNames(platform, arch)) {
+	for (const candidate of getCandidatePackageNames(platform, arch, undefined, packageName)) {
 		try {
-			return resolver(`${packageName}/${binary}`);
+			return resolver(`${candidate}/${binary}`);
 		} catch (error) {
 			firstError ??= error;
 		}

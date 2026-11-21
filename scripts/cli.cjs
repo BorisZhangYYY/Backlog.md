@@ -4,8 +4,13 @@ const { spawn } = require("node:child_process");
 const { constants: osConstants } = require("node:os");
 const { getCandidatePackageNames, isRosettaTranslated, resolveBinaryPath } = require("./resolveBinary.cjs");
 
-function printInstallHelp() {
+function printInstallHelp(packageName) {
 	console.error(`Detected: ${process.platform}-${process.arch} (Node ${process.version})`);
+	if (packageName !== "backlog.md") {
+		console.error("Use a Node.js installation that matches your operating system and CPU architecture.");
+		console.error(`Reinstall with the platform dependency: npm install -g ${packageName} --include=optional`);
+		return;
+	}
 	if (process.platform === "darwin") {
 		const rosetta = isRosettaTranslated();
 		console.error(`Rosetta translation: ${rosetta ? "yes" : "no"}`);
@@ -45,40 +50,39 @@ function getSignalExitCode(signal) {
 	return signalNumber ? 128 + signalNumber : 1;
 }
 
-function handleSpawnError(binaryPath, error) {
+function handleSpawnError(binaryPath, error, packageName, commandName) {
 	if (isBinaryInstallError(error)) {
 		console.error(`Cannot execute ${binaryPath} (${error.code ?? error.errno}).`);
 		console.error("The binary is missing or was built for a different CPU architecture.");
-		printInstallHelp();
+		printInstallHelp(packageName);
 	} else {
-		console.error("Failed to start backlog:", error);
+		console.error(`Failed to start ${commandName}:`, error);
 	}
 	process.exit(1);
 }
 
-function main() {
+function main({ packageName = "backlog.md", commandName = "backlog" } = {}) {
 	let binaryPath;
 	try {
-		binaryPath = resolveBinaryPath();
+		binaryPath = resolveBinaryPath(undefined, undefined, undefined, packageName);
 	} catch {
 		console.error(`Binary package not installed for ${process.platform}-${process.arch}.`);
-		console.error(`Tried packages: ${getCandidatePackageNames().join(", ")}`);
-		printInstallHelp();
+		console.error(
+			`Tried packages: ${getCandidatePackageNames(undefined, undefined, undefined, packageName).join(", ")}`,
+		);
+		printInstallHelp(packageName);
 		process.exit(1);
 	}
 
 	// Clean up unexpected args some global shims pass (e.g. bun) like the binary path itself
-	const rawArgs = process.argv.slice(2);
-	const cleanedArgs = rawArgs.filter((arg) => {
-		if (arg === binaryPath) return false;
-		// Filter any accidental deep path to our platform package binary
-		try {
-			const pattern = /node_modules[/\\]backlog\.md-(darwin|linux|windows)-[^/\\]+[/\\]backlog(\.exe)?$/i;
-			return !pattern.test(arg);
-		} catch {
-			return true;
-		}
-	});
+	const packagePrefix = packageName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+	const platformBinaryPath = new RegExp(
+		`node_modules/${packagePrefix}-(darwin|linux|windows)-[^/]+/backlog(\\.exe)?$`,
+		"i",
+	);
+	const cleanedArgs = process.argv
+		.slice(2)
+		.filter((arg) => arg !== binaryPath && !platformBinaryPath.test(arg.replace(/\\/g, "/")));
 
 	// Spawn failures can surface as a synchronous throw (e.g. ENOEXEC) or as an 'error' event
 	let child;
@@ -90,7 +94,7 @@ function main() {
 			env: { ...process.env, BACKLOG_LAUNCHER: `${process.pid}:${process.ppid}` },
 		});
 	} catch (error) {
-		handleSpawnError(binaryPath, error);
+		handleSpawnError(binaryPath, error, packageName, commandName);
 		return;
 	}
 
@@ -106,9 +110,9 @@ function main() {
 	child.on("exit", (code, signal) => {
 		if (isArchitectureSignal(signal)) {
 			// Typical symptom of running a binary built for the other CPU architecture
-			console.error(`\nbacklog crashed with ${signal} (illegal instruction): ${binaryPath}`);
+			console.error(`\n${commandName} crashed with ${signal} (illegal instruction): ${binaryPath}`);
 			console.error("The installed binary was likely built for a different CPU architecture.");
-			printInstallHelp();
+			printInstallHelp(packageName);
 			process.exit(1);
 		}
 		if (signal) {
@@ -117,9 +121,9 @@ function main() {
 		process.exit(code ?? 1);
 	});
 
-	child.on("error", (error) => handleSpawnError(binaryPath, error));
+	child.on("error", (error) => handleSpawnError(binaryPath, error, packageName, commandName));
 }
 
 if (require.main === module) main();
 
-module.exports = { getSignalExitCode, isArchitectureSignal, isBinaryInstallError };
+module.exports = { getSignalExitCode, isArchitectureSignal, isBinaryInstallError, main };

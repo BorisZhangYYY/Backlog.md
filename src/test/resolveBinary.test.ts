@@ -99,6 +99,25 @@ describe("resolveBinaryPath", () => {
 		const resolver = resolverFor(["backlog.md-windows-x64/backlog.exe"]);
 		expect(resolveBinaryPath("win32", "x64", resolver)).toBe("/node_modules/backlog.md-windows-x64/backlog.exe");
 	});
+
+	it("looks up the fork platform binary without loading the upstream binary", () => {
+		const packageName = "@boriszhangyyy/bklg";
+		for (const [platform, suffix] of [
+			["darwin", "darwin"],
+			["linux", "linux"],
+			["win32", "windows"],
+		]) {
+			for (const arch of ["x64", "arm64"]) {
+				const binary = `backlog${platform === "win32" ? ".exe" : ""}`;
+				const fork = `${packageName}-${suffix}-${arch}/${binary}`;
+				const upstream = `backlog.md-${suffix}-${arch}/${binary}`;
+				expect(resolveBinaryPath(platform, arch, resolverFor([fork, upstream]), packageName)).toBe(
+					`/node_modules/${fork}`,
+				);
+				expect(() => resolveBinaryPath(platform, arch, resolverFor([upstream]), packageName)).toThrow(packageName);
+			}
+		}
+	});
 });
 
 type ExecCall = { file: string; args: string[]; options: { encoding?: string; stdio?: unknown } };
