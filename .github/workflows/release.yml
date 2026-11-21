@@ -239,22 +239,22 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
-          cp scripts/cli.cjs dist/cli.js
-          cp scripts/resolveBinary.cjs dist/resolveBinary.cjs
-          cp scripts/postuninstall.cjs dist/postuninstall.cjs
-          chmod +x dist/cli.js
+          cp scripts/bklg.cjs scripts/cli.cjs scripts/resolveBinary.cjs dist/
+          chmod +x dist/bklg.cjs
       - name: Create npm-ready package.json
         shell: bash
         run: |
           TAG="${GITHUB_REF##refs/tags/v}"
-          jq 'del(.devDependencies,.patchedDependencies,.overrides,.scripts.prepare,.scripts.preinstall,.type) |
-              .version = "'$TAG'" |
-              .bin = {backlog:"cli.js"} |
-              .files = ["cli.js","resolveBinary.cjs","postuninstall.cjs","package.json","README.md","LICENSE"] |
-              .scripts = {"postuninstall": "node postuninstall.cjs"} |
-              .repository = {"type":"git","url":"https://github.com/MrLesk/Backlog.md"} |
-              .optionalDependencies |= map_values("'$TAG'")' package.json > dist/package.json
-          cp LICENSE README.md dist/ 2>/dev/null || true
+          jq --arg version "$TAG" '
+              del(.devDependencies,.patchedDependencies,.overrides,.scripts,.module,.type,."lint-staged",.trustedDependencies) |
+              .name = "@boriszhangyyy/bklg" |
+              .version = $version |
+              .bin = {bklg:"bklg.cjs"} |
+              .files = ["bklg.cjs","cli.cjs","resolveBinary.cjs","README.md","README.zh-CN.md","LICENSE"] |
+              .repository = {"type":"git","url":"git+https://github.com/BorisZhangYYY/Backlog.md.git"} |
+              .optionalDependencies |= with_entries(.key |= sub("^backlog[.]md"; "@boriszhangyyy/bklg") | .value = $version)
+              ' package.json > dist/package.json
+          cp LICENSE README.md README.zh-CN.md dist/
       - uses: actions/setup-node@v7.1.0
         with:
           node-version: 26.12.1
@@ -267,11 +267,11 @@ jobs:
       - name: Dry run trusted publish
         run: |
           cd dist
-          npm publish --access public --dry-run
+          npm publish --access public --tag latest --dry-run
       - name: Publish to npm
         run: |
           cd dist
-          npm publish --access public
+          npm publish --access public --tag latest
 
   publish-binaries:
     needs: build
@@ -279,27 +279,27 @@ jobs:
       matrix:
         include:
           - target: bun-linux-x64
-            package: backlog.md-linux-x64
+            package: '@boriszhangyyy/bklg-linux-x64'
             os: linux
             cpu: x64
           - target: bun-linux-arm64
-            package: backlog.md-linux-arm64
+            package: '@boriszhangyyy/bklg-linux-arm64'
             os: linux
             cpu: arm64
           - target: bun-darwin-x64
-            package: backlog.md-darwin-x64
+            package: '@boriszhangyyy/bklg-darwin-x64'
             os: darwin
             cpu: x64
           - target: bun-darwin-arm64
-            package: backlog.md-darwin-arm64
+            package: '@boriszhangyyy/bklg-darwin-arm64'
             os: darwin
             cpu: arm64
           - target: bun-windows-x64
-            package: backlog.md-windows-x64
+            package: '@boriszhangyyy/bklg-windows-x64'
             os: win32
             cpu: x64
           - target: bun-windows-arm64
-            package: backlog.md-windows-arm64
+            package: '@boriszhangyyy/bklg-windows-arm64'
             os: win32
             cpu: arm64
     runs-on: ubuntu-latest
@@ -341,17 +341,18 @@ jobs:
             ls -la
             exit 1
           fi
-          cp LICENSE README.md pkg/ 2>/dev/null || true
+          cp LICENSE pkg/
           cat <<EOF > pkg/package.json
           {
             "name": "${{ matrix.package }}",
             "version": "${TAG}",
             "os": ["${{ matrix.os }}"],
             "cpu": ["${{ matrix.cpu }}"],
+            "license": "MIT",
             "files": ["backlog${{ contains(matrix.target,'windows') && '.exe' || '' }}","package.json","LICENSE"],
             "repository": {
               "type": "git",
-              "url": "https://github.com/MrLesk/Backlog.md"
+              "url": "git+https://github.com/BorisZhangYYY/Backlog.md.git"
             }
           }
           EOF
@@ -363,11 +364,11 @@ jobs:
       - name: Dry run platform publish
         run: |
           cd pkg
-          npm publish --access public --dry-run
+          npm publish --access public --tag latest --dry-run
       - name: Publish platform package
         run: |
           cd pkg
-          npm publish --access public
+          npm publish --access public --tag latest
 
   verify-platform-packages:
     name: verify-platform-packages-${{ matrix.os }}
@@ -395,7 +396,7 @@ jobs:
           VERSION="${GITHUB_REF##refs/tags/v}"
           MAX_ATTEMPTS=40
           SLEEP_SECONDS=15
-          PACKAGE_NAME="$(node -e 'const map = { win32: "windows", darwin: "darwin", linux: "linux" }; const platform = map[process.platform]; const arch = process.arch; if (!platform || !["x64","arm64"].includes(arch)) { process.exit(1); } process.stdout.write(`backlog.md-${platform}-${arch}`);')"
+          PACKAGE_NAME="$(node -e 'const map = { win32: "windows", darwin: "darwin", linux: "linux" }; const platform = map[process.platform]; const arch = process.arch; if (!platform || !["x64","arm64"].includes(arch)) { process.exit(1); } process.stdout.write(`@boriszhangyyy/bklg-${platform}-${arch}`);')"
           BINARY_PATH="node_modules/${PACKAGE_NAME}/backlog"
 
           echo "Waiting for ${PACKAGE_NAME}@${VERSION} to become installable..."
@@ -407,7 +408,7 @@ jobs:
 
             if npm i "${PACKAGE_NAME}@${VERSION}" --prefer-online --no-audit --no-fund; then
               if [[ -f "$BINARY_PATH" ]]; then
-                if "./$BINARY_PATH" -v; then
+                if [[ "$("./$BINARY_PATH" --version)" == "$VERSION" ]]; then
                   echo "Resolved ${PACKAGE_NAME}@${VERSION} on attempt ${attempt}/${MAX_ATTEMPTS}."
                   exit 0
                 fi
@@ -435,12 +436,12 @@ jobs:
           MAX_ATTEMPTS=40
           SLEEP_SECONDS=15
           PACKAGES=(
-            "backlog.md-linux-x64"
-            "backlog.md-linux-arm64"
-            "backlog.md-darwin-x64"
-            "backlog.md-darwin-arm64"
-            "backlog.md-windows-x64"
-            "backlog.md-windows-arm64"
+            "@boriszhangyyy/bklg-linux-x64"
+            "@boriszhangyyy/bklg-linux-arm64"
+            "@boriszhangyyy/bklg-darwin-x64"
+            "@boriszhangyyy/bklg-darwin-arm64"
+            "@boriszhangyyy/bklg-windows-x64"
+            "@boriszhangyyy/bklg-windows-arm64"
           )
 
           for pkg in "${PACKAGES[@]}"; do
@@ -477,7 +478,7 @@ jobs:
             throw "Unsupported runner arch: $Arch"
           }
 
-          $PackageName = "backlog.md-windows-$Arch"
+          $PackageName = "@boriszhangyyy/bklg-windows-$Arch"
           $BinaryPath = Join-Path -Path "node_modules/$PackageName" -ChildPath "backlog.exe"
 
           Write-Host "Waiting for $PackageName@$Version to become installable..."
@@ -492,8 +493,8 @@ jobs:
               npm init -y | Out-Null
               npm i "$PackageName@$Version" --prefer-online --no-audit --no-fund
               if ($LASTEXITCODE -eq 0 -and (Test-Path $BinaryPath)) {
-                & $BinaryPath -v
-                if ($LASTEXITCODE -eq 0) {
+                $ActualVersion = & $BinaryPath --version
+                if ($LASTEXITCODE -eq 0 -and $ActualVersion -eq $Version) {
                   Write-Host "Resolved $PackageName@$Version on attempt $attempt/$MaxAttempts."
                   exit 0
                 }
@@ -531,7 +532,7 @@ jobs:
         with:
           node-version: 26.12.1
           registry-url: https://registry.npmjs.org
-      - name: Install and run backlog -v (Unix)
+      - name: Install and run bklg --version (Unix)
         if: ${{ matrix.os != 'windows-latest' }}
         shell: bash
         run: |
@@ -539,8 +540,8 @@ jobs:
           VERSION="${GITHUB_REF##refs/tags/v}"
           MAX_ATTEMPTS=40
           SLEEP_SECONDS=15
-          EXPECTED_PACKAGE="$(node -e 'const map = { win32: "windows", darwin: "darwin", linux: "linux" }; const platform = map[process.platform]; const arch = process.arch; if (!platform || !["x64","arm64"].includes(arch)) { process.exit(1); } process.stdout.write(`backlog.md-${platform}-${arch}`);')"
-          echo "Waiting for backlog.md@${VERSION} install + ${EXPECTED_PACKAGE} optional dependency..."
+          EXPECTED_PACKAGE="$(node -e 'const map = { win32: "windows", darwin: "darwin", linux: "linux" }; const platform = map[process.platform]; const arch = process.arch; if (!platform || !["x64","arm64"].includes(arch)) { process.exit(1); } process.stdout.write(`@boriszhangyyy/bklg-${platform}-${arch}`);')"
+          echo "Waiting for @boriszhangyyy/bklg@${VERSION} install + ${EXPECTED_PACKAGE} optional dependency..."
 
           for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
             rm -rf sanity
@@ -548,8 +549,8 @@ jobs:
             cd sanity
             npm init -y >/dev/null 2>&1
 
-            if npm i "backlog.md@${VERSION}" --prefer-online --no-audit --no-fund; then
-              if npx backlog -v; then
+            if npm i "@boriszhangyyy/bklg@${VERSION}" --prefer-online --no-audit --no-fund; then
+              if [[ -d "node_modules/${EXPECTED_PACKAGE}" && "$(./node_modules/.bin/bklg --version)" == "$VERSION" ]]; then
                 echo "Install sanity succeeded on attempt ${attempt}/${MAX_ATTEMPTS}."
                 exit 0
               fi
@@ -570,9 +571,9 @@ jobs:
             fi
           done
 
-          echo "Install sanity timed out for backlog.md@${VERSION}."
+          echo "Install sanity timed out for @boriszhangyyy/bklg@${VERSION}."
           exit 1
-      - name: Install and run backlog -v (Windows)
+      - name: Install and run bklg --version (Windows)
         if: ${{ matrix.os == 'windows-latest' }}
         shell: pwsh
         run: |
@@ -585,8 +586,8 @@ jobs:
             throw "Unsupported runner arch: $Arch"
           }
 
-          $ExpectedPackage = "backlog.md-windows-$Arch"
-          Write-Host "Waiting for backlog.md@$Version install + $ExpectedPackage optional dependency..."
+          $ExpectedPackage = "@boriszhangyyy/bklg-windows-$Arch"
+          Write-Host "Waiting for @boriszhangyyy/bklg@$Version install + $ExpectedPackage optional dependency..."
 
           for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
             if (Test-Path "sanity") {
@@ -597,10 +598,10 @@ jobs:
 
             try {
               npm init -y | Out-Null
-              npm i "backlog.md@$Version" --prefer-online --no-audit --no-fund
-              if ($LASTEXITCODE -eq 0) {
-                npx backlog -v
-                if ($LASTEXITCODE -eq 0) {
+              npm i "@boriszhangyyy/bklg@$Version" --prefer-online --no-audit --no-fund
+              if ($LASTEXITCODE -eq 0 -and (Test-Path "node_modules/$ExpectedPackage")) {
+                $ActualVersion = & ./node_modules/.bin/bklg.cmd --version
+                if ($LASTEXITCODE -eq 0 -and $ActualVersion -eq $Version) {
                   Write-Host "Install sanity succeeded on attempt $attempt/$MaxAttempts."
                   exit 0
                 }
@@ -623,7 +624,7 @@ jobs:
             }
           }
 
-          throw "Install sanity timed out for backlog.md@$Version."
+          throw "Install sanity timed out for @boriszhangyyy/bklg@$Version."
 
   github-release:
     needs: build

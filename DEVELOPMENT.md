@@ -70,6 +70,19 @@ every target on the same verified Bun release.
 Set `BACKLOG_BUILD_OUTDIR` to emit JavaScript and browser assets instead. Nix
 and integration tests use this bundle path without bytecode compilation.
 
+## Fork npm releases
+
+The Release workflow publishes six scoped platform packages before
+`@boriszhangyyy/bklg`. The launcher package pins each optional dependency to
+the release version. The install checks run the installed `bklg --version`
+and compare it with the release tag.
+
+Before the first automated release, create any missing platform packages on
+npm. Then configure [trusted publishing](https://docs.npmjs.com/trusted-publishers/)
+for the launcher and all six platform packages: owner `BorisZhangYYY`, repository
+`Backlog.md`, workflow `release.yml`, with `npm publish` allowed. Use a new
+version for the automated release, not a version already published during setup.
+
 ## Nix Packaging
 
 The flake uses bun2nix v2 to turn the repository's `bun.lock` into an offline

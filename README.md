@@ -14,7 +14,11 @@
 </p>
 
 <p align="center">
-<code>npm i -g backlog.md</code>
+<a href="README.md"><strong>English</strong></a> | <a href="README.zh-CN.md">简体中文</a>
+</p>
+
+<p align="center">
+<code>npm i -g @boriszhangyyy/bklg</code>
 </p>
 
 ![Backlog demo GIF using: backlog board](./.github/backlog-v1.40.gif)
@@ -24,6 +28,23 @@
 
 > **Backlog.md** turns any folder into a **self‑contained project board**
 > powered by plain Markdown files and a zero‑config CLI.
+
+> **This repository is a fork** of [MrLesk/Backlog.md](https://github.com/MrLesk/Backlog.md) with a
+> simplified Chinese Web UI and CLI ([中文说明](README.zh-CN.md)). The fork's npm package is
+> `@boriszhangyyy/bklg`; `backlog.md` is the upstream package.
+
+## Install the fork
+
+```bash
+npm install -g @boriszhangyyy/bklg
+bklg --version
+bklg browser
+```
+
+The multi-platform package supports x64 and ARM64 on macOS, Linux, and Windows. npm installs the
+matching binary automatically. Run the same install command to update, or download an executable from
+[Releases](https://github.com/BorisZhangYYY/Backlog.md/releases). The examples below use the upstream
+`backlog` command; use `bklg` in its place when you install this fork from npm.
 
 ## Why Backlog.md in the AI era
 
@@ -265,7 +286,7 @@ To keep the Web UI running as an auto-starting local service, see [Running Backl
 ## 🔧 MCP Integration (Model Context Protocol)
 
 CLI instructions are the default AI setup. MCP remains supported for AI coding assistants like Claude Code, Codex, Gemini CLI and Kiro when you explicitly prefer an MCP connector.
-You can run `backlog init` (even if you already initialized Backlog.md) and choose MCP integration, or follow the manual steps below.
+The upstream `backlog init` can configure MCP automatically. If you installed this fork from npm, use the manual steps below with `bklg` as the executable and keep `backlog` as the server name.
 
 ### Client guides
 
@@ -406,14 +427,14 @@ If the architectures disagree, reinstall with the native one:
 # Homebrew: make sure `which brew` prints /opt/homebrew, then
 brew reinstall backlog-md
 
-# npm
-arch -arm64 npm i -g backlog.md
+# npm: this fork
+arch -arm64 npm install -g @boriszhangyyy/bklg
 
-# Bun
+# Bun: upstream
 arch -arm64 bun add -g backlog.md
 ```
 
-Running an x64 Node under Rosetta on purpose also works: `backlog` falls back to whichever `backlog.md-darwin-*` package is present.
+Running x64 Node under Rosetta also works: `bklg` falls back to whichever `@boriszhangyyy/bklg-darwin-*` package is installed.
 
 ---
 
