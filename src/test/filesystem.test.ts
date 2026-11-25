@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import * as fsPromises from "node:fs/promises";
 import { mkdir, readdir, rename, stat } from "node:fs/promises";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { FileSystem } from "../file-system/operations.ts";
 import { serializeTask } from "../markdown/serializer.ts";
 import type { BacklogConfig, Decision, Document, Task } from "../types/index.ts";
@@ -974,6 +974,24 @@ Invalid content`,
 				expect(files).toContain(`${id} - ${expected}.md`);
 			}
 		});
+	});
+
+	it.each([
+		["ASCII", "a".repeat(256), "a".repeat(243)],
+		["multibyte", "界".repeat(80) + "🙂".repeat(5), "界".repeat(80)],
+	])("limits the filename for a long %s title without changing the stored title", async (_kind, title, fileTitle) => {
+		const path = await filesystem.saveTask({
+			id: "task-1",
+			title,
+			status: "To Do",
+			assignee: [],
+			createdDate: "2025-06-07",
+			labels: [],
+			dependencies: [],
+		});
+
+		expect(basename(path)).toBe(`task-1 - ${fileTitle}.md`);
+		expect((await filesystem.loadTask("task-1"))?.title).toBe(title);
 	});
 
 	describe("punctuation-only titles", () => {

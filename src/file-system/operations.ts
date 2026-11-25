@@ -927,7 +927,18 @@ export class FileSystem {
 			directory = dirname(loadedFromPath);
 			nameId = filenameId;
 		}
-		const filename = `${idForFilename(nameId)} - ${this.sanitizeFilename(task.title)}.md`;
+		const filenamePrefix = `${idForFilename(nameId)} - `;
+		const extension = ".md";
+		let titleBytesLeft = 255 - Buffer.byteLength(filenamePrefix + extension);
+		const sanitizedTitle = this.sanitizeFilename(task.title);
+		let fileTitle = "";
+		for (const character of sanitizedTitle) {
+			const bytes = Buffer.byteLength(character);
+			if (bytes > titleBytesLeft) break;
+			fileTitle += character;
+			titleBytesLeft -= bytes;
+		}
+		const filename = `${filenamePrefix}${fileTitle}${extension}`;
 		return { id, filePath: join(directory, filename), loadedFromPath };
 	}
 
