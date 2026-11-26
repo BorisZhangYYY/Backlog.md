@@ -12,6 +12,19 @@ const makeDoc = (overrides: Partial<Document>): Document => ({
 });
 
 describe("buildDocsTree", () => {
+	it("places existing files with Markdown and keeps folders that contain only files", () => {
+		const doc = makeDoc({ path: "guides/setup.md" });
+		const image = { path: "guides/screenshot.png", kind: "image" } as const;
+		const report = { path: "guides/reports/report.pdf", kind: "document" } as const;
+		const handover = { path: "handover.docx", kind: "document" } as const;
+		const result = buildDocsTree([doc], [image, report, handover]);
+
+		expect(result.tree[0]?.docs).toEqual([doc]);
+		expect(result.tree[0]?.files).toEqual([image]);
+		expect(result.tree[0]?.children[0]?.files).toEqual([report]);
+		expect(result.ungroupedFiles).toEqual([handover]);
+	});
+
 	it("organizes single-level folder structure", () => {
 		const docs = [
 			makeDoc({ id: "doc-1", title: "API Guide", path: "guides/api.md" }),

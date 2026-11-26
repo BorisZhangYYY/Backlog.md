@@ -1,4 +1,4 @@
-import {useState, useEffect, memo, useCallback} from 'react';
+import {useState, useEffect, memo, useCallback, useMemo} from 'react';
 import {useParams, useNavigate, useSearchParams} from 'react-router-dom';
 import {apiClient, isAmbiguousIdConflict} from '../lib/api';
 import MDEditor from '@uiw/react-md-editor';
@@ -13,26 +13,33 @@ import StoredDate from './StoredDate';
 import { documentIdKey } from '../../utils/document-id';
 import { ArchiveButton, ArchivedLabel, ArchiveRefusal, useRecordArchive } from './RecordArchive';
 import { useLocale } from '../contexts/LocaleContext';
+import { documentationMarkdownComponents } from './DocumentationFiles';
 
 // Custom MDEditor wrapper for proper height handling
 const MarkdownEditor = memo(function MarkdownEditor({
 	value,
 	onChange,
-	isEditing
+	isEditing,
+	imageFolder,
 }: {
     value: string;
     onChange?: (val: string | undefined) => void;
     isEditing: boolean;
+    imageFolder?: string;
     isReadonly?: boolean;
 }) {
     const { theme } = useTheme();
+    const components = useMemo(
+        () => imageFolder === undefined ? undefined : documentationMarkdownComponents(imageFolder),
+        [imageFolder],
+    );
     if (!isEditing) {
         // Preview mode - just show the rendered markdown without editor UI
         return (
             <div
                 className="prose prose-sm !max-w-none w-full p-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
                 data-color-mode={theme}>
-                <MermaidMarkdown source={value} />
+                <MermaidMarkdown source={value} components={components} />
             </div>
         );
     }
@@ -457,6 +464,7 @@ export default function DocumentationDetail({docs, onRefreshData, dateFormat}: D
                             value={content}
                             onChange={(val) => setContent(val || '')}
                             isEditing={isEditing}
+                            imageFolder={currentDocument?.path && !isArchived ? getDocumentDirectory(currentDocument.path) : undefined}
                         />
                     </div>
                 </div>

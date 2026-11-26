@@ -284,6 +284,10 @@ backlog browser --no-open
 - 带确认对话框的任务归档
 - 与 CLI 无缝衔接 —— 所有改动都同步回 Markdown 文件
 
+仅监听回环地址时，「文档」树也会列出项目文档目录中已有的文件。点击图片可查看大图；点击 PDF、Word 等受支持的文件，由系统默认应用打开原件。Markdown 可嵌入同目录的图片（`![截图](./screenshot.png)`）。这项功能会跳过隐藏文件和符号链接。通过文件管理器添加文件后，刷新页面即可看到。
+
+监听非回环地址时，不提供这些文件入口。通过 SSH 转发访问回环监听，不代表浏览器和服务在同一台机器：打开原件会启动运行 Backlog.md 的那台机器上的应用。请在同一台电脑上使用，不要通过隧道或代理向不可信用户开放。
+
 ![Web Interface Screenshot](./.github/web.jpeg)
 
 想把 Web UI 作为开机自启的本地服务运行，见[把 Backlog.md 作为服务运行](backlog/docs/doc-003%20-%20Running-Backlog-Browser-as-a-Service.md)。

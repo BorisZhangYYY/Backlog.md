@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { renderToString } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import BoardPage from "../web/components/BoardPage";
+import { DocumentationFiles } from "../web/components/DocumentationFiles";
 import SideNavigation from "../web/components/SideNavigation";
 
 const storage = new Map<string, string>();
@@ -19,15 +20,17 @@ globalThis.localStorage = {
 const renderNavigation = (isLoading: boolean, taskCount: number, error?: Error): string =>
 	renderToString(
 		<MemoryRouter>
-			<SideNavigation
-				taskCount={taskCount}
-				docs={[]}
-				decisions={[]}
-				isLoading={isLoading}
-				error={error}
-				onRetry={async () => {}}
-				onRefreshData={async () => {}}
-			/>
+			<DocumentationFiles>
+				<SideNavigation
+					taskCount={taskCount}
+					docs={[]}
+					decisions={[]}
+					isLoading={isLoading}
+					error={error}
+					onRetry={async () => {}}
+					onRefreshData={async () => {}}
+				/>
+			</DocumentationFiles>
 		</MemoryRouter>,
 	);
 
