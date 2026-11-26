@@ -303,6 +303,11 @@ export interface Document {
 	archived?: boolean;
 }
 
+export interface DocumentationFile {
+	path: string;
+	kind: "image" | "document" | "other";
+}
+
 export interface DocumentCreateInput {
 	title: string;
 	content?: string;

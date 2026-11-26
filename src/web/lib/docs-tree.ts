@@ -1,4 +1,4 @@
-import type { Document } from "../../types";
+import type { Document, DocumentationFile } from "../../types";
 
 /**
  * Represents a folder node in the docs tree structure.
@@ -11,6 +11,7 @@ export interface DocsTreeNode {
 	path: string;
 	/** Docs directly in this folder */
 	docs: Document[];
+	files: DocumentationFile[];
 	/** Nested subfolders */
 	children: DocsTreeNode[];
 }
@@ -24,9 +25,12 @@ export interface DocsTreeResult {
 	tree: DocsTreeNode[];
 	/** Docs without folder path */
 	ungroupedDocs: Document[];
+	ungroupedFiles: DocumentationFile[];
 }
 
 const byTitle = (a: Document, b: Document) => a.title.localeCompare(b.title);
+const byPath = (a: DocumentationFile, b: DocumentationFile) => a.path.localeCompare(b.path);
+const parentFolder = (path?: string): string => path?.split("/").slice(0, -1).join("/") ?? "";
 
 /**
  * Builds a hierarchical tree structure from a flat list of documents.
@@ -38,10 +42,11 @@ const byTitle = (a: Document, b: Document) => a.title.localeCompare(b.title);
  * @param docs - Array of documents to organize
  * @returns Tree structure and ungrouped documents
  */
-export function buildDocsTree(docs: Document[]): DocsTreeResult {
+export function buildDocsTree(docs: Document[], files: DocumentationFile[] = []): DocsTreeResult {
 	const tree: DocsTreeNode[] = [];
 	const foldersByPath = new Map<string, DocsTreeNode>();
 	const ungroupedDocs: Document[] = [];
+	const ungroupedFiles: DocumentationFile[] = [];
 
 	const getFolder = (folderPath: string): DocsTreeNode => {
 		const existing = foldersByPath.get(folderPath);
@@ -53,6 +58,7 @@ export function buildDocsTree(docs: Document[]): DocsTreeResult {
 			name: folderPath.slice(separatorIndex + 1),
 			path: folderPath,
 			docs: [],
+			files: [],
 			children: [],
 		};
 		foldersByPath.set(folderPath, node);
@@ -66,17 +72,22 @@ export function buildDocsTree(docs: Document[]): DocsTreeResult {
 
 	for (const doc of docs) {
 		// Everything before the last path segment (the filename) is the folder path.
-		const folderPath = doc.path?.split("/").slice(0, -1).join("/") ?? "";
+		const folderPath = parentFolder(doc.path);
 		if (folderPath === "") {
 			ungroupedDocs.push(doc);
 		} else {
 			getFolder(folderPath).docs.push(doc);
 		}
 	}
+	for (const file of files) {
+		const folderPath = parentFolder(file.path);
+		(folderPath ? getFolder(folderPath).files : ungroupedFiles).push(file);
+	}
 
 	ungroupedDocs.sort(byTitle);
+	ungroupedFiles.sort(byPath);
 	sortTree(tree);
-	return { tree, ungroupedDocs };
+	return { tree, ungroupedDocs, ungroupedFiles };
 }
 
 /**
@@ -86,6 +97,7 @@ function sortTree(nodes: DocsTreeNode[]): void {
 	nodes.sort((a, b) => a.name.localeCompare(b.name));
 	for (const node of nodes) {
 		node.docs.sort(byTitle);
+		node.files.sort(byPath);
 		sortTree(node.children);
 	}
 }

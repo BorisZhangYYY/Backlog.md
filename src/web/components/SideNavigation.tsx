@@ -5,6 +5,7 @@ import {
 	type Decision,
 	type DecisionSearchResult,
 	type Document,
+	type DocumentationFile,
 	type DocumentSearchResult,
 	type SearchResult,
 	type SearchResultType,
@@ -17,6 +18,7 @@ import { apiClient } from '../lib/api';
 import { parseSearchCommandQuery } from '../utils/search-command-query';
 import { buildDocsTree, type DocsTreeNode } from '../lib/docs-tree';
 import { useLocale, type Translate } from '../contexts/LocaleContext';
+import { useDocumentationFiles } from './DocumentationFiles';
 
 // Below this width the expanded sidebar (320px) would leave almost nothing for the page content,
 // so the sidebar starts collapsed and collapses again whenever the viewport gets that narrow.
@@ -219,6 +221,62 @@ const DocLink = ({ doc, depth = 0 }: { doc: Document; depth?: number }) => (
 	</NavLink>
 );
 
+function DocumentationFileRow({ file, depth = 0 }: { file: DocumentationFile; depth?: number }) {
+	const { t } = useLocale();
+	const { showImage } = useDocumentationFiles();
+	const [opening, setOpening] = useState(false);
+	const [failed, setFailed] = useState(false);
+	const name = file.path.slice(file.path.lastIndexOf('/') + 1);
+	const action = t(
+		file.kind === 'image' ? 'docs.enlargeImage' : file.kind === 'document' ? 'docs.openFile' : 'docs.unsupportedFile',
+		{ name },
+	);
+	const rowClass = 'flex items-center gap-3 w-full px-3 py-2 text-left text-sm text-gray-600 dark:text-gray-300 rounded-lg';
+	const style = { paddingLeft: `${12 + depth * 12}px` };
+	const label = (
+		<>
+			<span className="shrink-0 text-gray-400 dark:text-gray-500"><Icons.DocumentPage /></span>
+			<span className="truncate">{name}</span>
+		</>
+	);
+	if (file.kind === 'other') return <div title={action} className={rowClass} style={style}>{label}</div>;
+	const activate = async () => {
+		if (file.kind === 'image') {
+			showImage(file.path);
+			return;
+		}
+		setFailed(false);
+		setOpening(true);
+		try {
+			await apiClient.openDocumentationFile(file.path);
+		} catch {
+			setFailed(true);
+		} finally {
+			setOpening(false);
+		}
+	};
+	return (
+		<div>
+			<button
+				type="button"
+				disabled={opening}
+				onClick={activate}
+				title={action}
+				aria-label={action}
+				className={`${rowClass} hover:bg-gray-100 dark:hover:bg-gray-800`}
+				style={style}
+			>
+				{label}
+			</button>
+			{failed && (
+				<p role="alert" className="px-3 py-1 text-xs text-red-700 dark:text-red-400" style={style}>
+					{t('docs.openFileFailed', { name })}
+				</p>
+			)}
+		</div>
+	);
+}
+
 interface FolderNodeProps {
 	node: DocsTreeNode;
 	depth: number;
@@ -257,6 +315,7 @@ const FolderNode = memo(function FolderNode({ node, depth, folderExpanded, onTog
 					{node.docs.map(doc => (
 						<DocLink key={doc.id} doc={doc} depth={depth + 1} />
 					))}
+					{node.files.map(file => <DocumentationFileRow key={file.path} file={file} depth={depth + 1} />)}
 				</div>
 			)}
 		</div>
@@ -282,6 +341,7 @@ const SideNavigation = memo(function SideNavigation({
 	onRetry
 }: SideNavigationProps) {
 	const { t, tNode } = useLocale();
+	const { files, unavailable: filesUnavailable } = useDocumentationFiles();
 	const [isCollapsed, setIsCollapsed] = useState(() => {
 		if (matchesNarrowSidebarQuery()) return true;
 		const saved = localStorage.getItem('sideNavCollapsed');
@@ -482,7 +542,7 @@ const SideNavigation = memo(function SideNavigation({
 	const filteredDocs = docs;
 	const filteredDecisions = decisions;
 
-	const { tree, ungroupedDocs } = useMemo(() => buildDocsTree(filteredDocs), [filteredDocs]);
+	const { tree, ungroupedDocs, ungroupedFiles } = useMemo(() => buildDocsTree(filteredDocs, files), [filteredDocs, files]);
 
 	const toggleFolder = useCallback((path: string) => {
 		setFolderExpanded(prev => ({ ...prev, [path]: !(prev[path] ?? true) }));
@@ -791,11 +851,14 @@ const SideNavigation = memo(function SideNavigation({
 							{/* Document List */}
 							{!isDocsCollapsed && (
 								<div className="space-y-1">
+								{filesUnavailable && (
+									<p role="status" className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">{t('docs.filesUnavailable')}</p>
+								)}
 									{isLoading ? (
 										<LoadingPhase className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400" t={t} />
 									) : error ? (
 										<p className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">{t('nav.documentsUnavailable')}</p>
-									) : filteredDocs.length === 0 ? (
+									) : filteredDocs.length === 0 && (files.length === 0 || searchQuery.trim()) ? (
 										<p className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">{t('nav.noDocuments')}</p>
 									) : searchQuery.trim() ? (
 										// Search results stay flat, bypassing folder grouping
@@ -816,6 +879,7 @@ const SideNavigation = memo(function SideNavigation({
 											{ungroupedDocs.map(doc => (
 												<DocLink key={doc.id} doc={doc} />
 											))}
+											{ungroupedFiles.map(file => <DocumentationFileRow key={file.path} file={file} />)}
 										</>
 									)}
 								</div>

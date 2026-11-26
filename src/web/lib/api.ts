@@ -6,6 +6,7 @@ import type {
 	Decision,
 	DecisionUpdateInput,
 	Document,
+	DocumentationFile,
 	Milestone,
 	SearchPriorityFilter,
 	SearchResult,
@@ -456,6 +457,21 @@ export class ApiClient {
 			throw new Error("Failed to fetch documentation");
 		}
 		return response.json();
+	}
+
+	async fetchDocumentationFiles(signal: AbortSignal): Promise<DocumentationFile[]> {
+		const response = await fetch(`${API_BASE}/documentation-files`, { signal });
+		if (!response.ok) throw await toApiError(response, "Failed to list documentation files");
+		return response.json();
+	}
+
+	async openDocumentationFile(path: string): Promise<void> {
+		const response = await fetch(`${API_BASE}/documentation-files/open`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ path }),
+		});
+		if (!response.ok) throw await toApiError(response, "Could not open the original file");
 	}
 
 	async fetchDoc(filename: string): Promise<Document> {

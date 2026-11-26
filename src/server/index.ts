@@ -48,6 +48,7 @@ import { isValidTaskId } from "../utils/task-id.ts";
 import { isAmbiguousTaskIdError, LOCAL_TASK_LOOKUP_HINT, taskNotFoundMessage } from "../utils/task-path.ts";
 import { TaskChangedError } from "../utils/task-revision.ts";
 import { getVersion } from "../utils/version.ts";
+import { listDocumentationFiles, openDocumentationFile, serveDocumentationImage } from "./documentation-files.ts";
 
 // Regex pattern to match any prefix (letters followed by dash)
 const PREFIX_PATTERN = /^[a-zA-Z]+-/i;
@@ -414,6 +415,7 @@ export class BacklogServer {
 		const finalPort = port ?? config?.defaultPort ?? 6420;
 		const selectedHostname = hostname ?? config?.browserHostname ?? DEFAULT_BROWSER_HOSTNAME;
 		const finalHostname = await resolveBrowserListeningAddress(selectedHostname);
+		const localBrowser = isLoopbackBrowserHostname(finalHostname);
 		// A browser sends the name it used to reach this server in the Host header. Another website
 		// can point its own name at this machine, so only these names are trusted: the selected host,
 		// the address it resolved to, and the loopback names. The port is not compared, so a
@@ -453,7 +455,7 @@ export class BacklogServer {
 		const shouldOpenBrowser = openBrowser && (config?.autoOpenBrowser ?? true);
 
 		try {
-			if (!isLoopbackBrowserHostname(finalHostname)) {
+			if (!localBrowser) {
 				console.warn(
 					pc.bold(
 						pc.red(
@@ -509,6 +511,24 @@ export class BacklogServer {
 					"/api/docs": {
 						GET: async () => await this.handleListDocs(),
 						POST: async (req: Request) => await this.handleCreateDoc(req),
+					},
+					"/api/documentation-files": {
+						GET: async () =>
+							Response.json(localBrowser ? await listDocumentationFiles(this.core.filesystem.docsDir) : [], {
+								headers: { "Cache-Control": "no-store" },
+							}),
+					},
+					"/api/documentation-files/image": {
+						GET: (req: Request) =>
+							localBrowser
+								? serveDocumentationImage(this.core.filesystem.docsDir, new URL(req.url).searchParams.get("path") ?? "")
+								: new Response("Not Found", { status: 404 }),
+					},
+					"/api/documentation-files/open": {
+						POST: (req: Request) =>
+							localBrowser
+								? openDocumentationFile(req, this.core.filesystem.docsDir)
+								: new Response("Forbidden", { status: 403 }),
 					},
 					"/api/doc/:id": {
 						GET: async (req: Request & { params: { id: string } }) => await this.handleGetDoc(req.params.id),

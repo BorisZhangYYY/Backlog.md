@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { type ComponentProps, useEffect, useMemo, useRef } from "react";
 import MDEditor from "@uiw/react-md-editor";
 import { useTaskIdIndex } from "../contexts/TaskIdIndexContext";
 import { renderMermaidIn } from "../utils/mermaid";
@@ -6,6 +6,7 @@ import { createTaskIdLinkPlugin } from "../utils/task-id-links";
 
 interface Props {
 	source: string;
+	components?: ComponentProps<typeof MDEditor.Markdown>["components"];
 }
 
 /**
@@ -35,7 +36,7 @@ function keepHashLinksInCurrentRoute(url: string, key: string): string {
 	return `${window.location.pathname}${window.location.search}${url}`;
 }
 
-export default function MermaidMarkdown({ source }: Props) {
+export default function MermaidMarkdown({ source, components }: Props) {
 	const ref = useRef<HTMLDivElement | null>(null);
 	const taskIdIndex = useTaskIdIndex();
 	const remarkPlugins = useMemo(() => [treatHtmlAsText, createTaskIdLinkPlugin(taskIdIndex)], [taskIdIndex]);
@@ -60,6 +61,7 @@ export default function MermaidMarkdown({ source }: Props) {
 				source={source}
 				urlTransform={keepHashLinksInCurrentRoute}
 				remarkPlugins={remarkPlugins}
+				components={components}
 			/>
 		</div>
 	);

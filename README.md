@@ -277,6 +277,10 @@ backlog browser --no-open
 - Task archiving with confirmation dialogs
 - Seamless CLI integration - all changes sync with markdown files
 
+On a loopback listener, the Documentation tree also lists existing files under the project's documentation directory. Click an image to see it at full size, or click a supported file such as a PDF or Word document to open the original in the computer's default application. Markdown can embed an image from its own folder (`![Screenshot](./screenshot.png)`). Hidden files and symlinks are not followed for this feature. Reload the page to pick up files added outside Backlog.md.
+
+These file actions are not available when the server listens on a non-loopback address. A loopback listener forwarded over SSH is not proof that both ends are on the same computer: opening a file uses the application on the machine running Backlog.md. Use the feature on the same computer and do not expose it through a tunnel or proxy to untrusted users.
+
 ![Web Interface Screenshot](./.github/web.jpeg)
 
 To keep the Web UI running as an auto-starting local service, see [Running Backlog.md as a Service](backlog/docs/doc-003%20-%20Running-Backlog-Browser-as-a-Service.md).
