@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@hermes'
 created_date: '2026-11-26T01:53:00Z'
-updated_date: '2026-11-26T06:12:00Z'
+updated_date: '2026-11-26T06:32:00Z'
 labels: []
 dependencies: []
 references:
@@ -16,23 +16,24 @@ references:
   - src/web/components/MermaidMarkdown.tsx
   - src/server/index.ts
 modified_files:
-  - src/test/server-document-files.test.ts
-  - src/server/documentation-files.ts
-  - src/server/index.ts
-  - src/web/lib/docs-tree.test.ts
-  - src/types/index.ts
-  - src/web/lib/docs-tree.ts
-  - src/web/lib/api.ts
-  - src/web/components/DocumentationFiles.tsx
-  - src/web/components/Layout.tsx
-  - src/i18n/messages/en.ts
-  - src/i18n/messages/zh-CN.ts
-  - src/web/components/SideNavigation.tsx
-  - src/web/components/MermaidMarkdown.tsx
-  - src/web/components/DocumentationDetail.tsx
   - README.md
   - README.zh-CN.md
+  - src/i18n/messages/en.ts
+  - src/i18n/messages/zh-CN.ts
+  - src/server/documentation-files.ts
+  - src/server/index.ts
+  - src/test/server-document-files.test.ts
   - src/test/web-side-navigation-loading.test.tsx
+  - src/types/index.ts
+  - src/web/components/DocumentationDetail.tsx
+  - src/web/components/DocumentationFiles.tsx
+  - src/web/components/Layout.tsx
+  - src/web/components/MermaidMarkdown.tsx
+  - src/web/components/SideNavigation.tsx
+  - src/web/lib/api.ts
+  - src/web/lib/docs-tree.test.ts
+  - src/web/lib/docs-tree.ts
+  - src/test/web-app-open-detail-refresh.test.tsx
 type: feature
 ordinal: 414000
 ---
@@ -79,6 +80,8 @@ Boris 已在项目会话确认：首版只做本机模式，远程监听不列�
 已完成真实 Chromium 环境验收：Markdown、未引用图片、内嵌图放大及链接保留；PDF/DOCX 原件请求由 macOS 成功受理。远程监听测试确认 Markdown 可读、附件列表为空、图片 404、原件请求 403。末轮加固：macOS 通过 Foundation 只读判定 Finder 替身，替身或判定失败都不调用系统打开；该失败路由用模拟分类做回归，真实只读探测在普通 PDF 返回 false。126 项定向及回归测试、类型、Biome、构建和 diff --check 通过；等待 Finder 替身修复的定向独立复核。
 
 独立定向复核确认 Finder 替身阻塞项已解决，未发现本次修复引入的回归。
+
+发版 CI 复现两个打开草稿的 DOM 测试失败：原夹具对新增文档文件请求返回 {}。已为夹具补齐空数组响应，不改产品运行逻辑。
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary

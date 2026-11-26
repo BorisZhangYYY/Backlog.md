@@ -132,6 +132,7 @@ function stubApi(handlers: {
 		fetchConfig: apiClient.fetchConfig.bind(apiClient),
 		fetchMilestones: apiClient.fetchMilestones.bind(apiClient),
 		fetchArchivedMilestones: apiClient.fetchArchivedMilestones.bind(apiClient),
+		fetchDocumentationFiles: apiClient.fetchDocumentationFiles.bind(apiClient),
 		search: apiClient.search.bind(apiClient),
 		fetchDuplicateTaskRepairPlan: apiClient.fetchDuplicateTaskRepairPlan.bind(apiClient),
 		fetchTask: apiClient.fetchTask.bind(apiClient),
@@ -143,6 +144,7 @@ function stubApi(handlers: {
 	apiClient.fetchConfig = async () => ({ projectName: "Readiness", statuses }) as BacklogConfig;
 	apiClient.fetchMilestones = async () => [];
 	apiClient.fetchArchivedMilestones = async () => [];
+	apiClient.fetchDocumentationFiles = async () => [];
 	apiClient.search = async () => handlers.search();
 	apiClient.fetchDuplicateTaskRepairPlan = async () => ({ groups: [] }) as never;
 	apiClient.fetchTask = async (id: string) => handlers.fetchTask(id);
