@@ -1,3 +1,4 @@
+import { File, FilePenLine, FileScan, FileText, Image, Presentation, Sheet } from 'lucide-react';
 import { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Tooltip } from 'react-tooltip';
@@ -216,10 +217,31 @@ const DocLink = ({ doc, depth = 0 }: { doc: Document; depth?: number }) => (
 		}
 		style={depth > 0 ? { paddingLeft: `${12 + depth * 12}px` } : undefined}
 	>
-		<span className="text-gray-400 dark:text-gray-500"><Icons.DocumentPage /></span>
+		<FileText aria-hidden="true" className="h-4 w-4 shrink-0 text-gray-500 dark:text-gray-400" />
 		<span className="truncate">{doc.title}</span>
 	</NavLink>
 );
+
+function documentationFileIcon(kind: DocumentationFile['kind'], name: string) {
+	if (kind === 'image') return Image;
+	if (kind === 'other') return File;
+
+	switch (name.split('.').pop()?.toLowerCase()) {
+		case 'pdf':
+			return FileScan;
+		case 'csv':
+		case 'ods':
+		case 'xls':
+		case 'xlsx':
+			return Sheet;
+		case 'odp':
+		case 'ppt':
+		case 'pptx':
+			return Presentation;
+		default:
+			return FilePenLine;
+	}
+}
 
 function DocumentationFileRow({ file, depth = 0 }: { file: DocumentationFile; depth?: number }) {
 	const { t } = useLocale();
@@ -227,6 +249,7 @@ function DocumentationFileRow({ file, depth = 0 }: { file: DocumentationFile; de
 	const [opening, setOpening] = useState(false);
 	const [failed, setFailed] = useState(false);
 	const name = file.path.slice(file.path.lastIndexOf('/') + 1);
+	const Icon = documentationFileIcon(file.kind, name);
 	const action = t(
 		file.kind === 'image' ? 'docs.enlargeImage' : file.kind === 'document' ? 'docs.openFile' : 'docs.unsupportedFile',
 		{ name },
@@ -235,7 +258,7 @@ function DocumentationFileRow({ file, depth = 0 }: { file: DocumentationFile; de
 	const style = { paddingLeft: `${12 + depth * 12}px` };
 	const label = (
 		<>
-			<span className="shrink-0 text-gray-400 dark:text-gray-500"><Icons.DocumentPage /></span>
+			<Icon aria-hidden="true" className="h-4 w-4 shrink-0 text-gray-500 dark:text-gray-400" />
 			<span className="truncate">{name}</span>
 		</>
 	);
